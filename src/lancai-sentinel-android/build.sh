@@ -201,4 +201,15 @@ if [ "${GOFILE_AUTO:-1}" != "0" ]; then
     fi
 fi
 
+# ---------------------------------------------------------------- 8. 清理旧版本
+# 只保留最近 KEEP_VERSIONS 个版本（默认 2）的 APK 与源码包，避免产物无限堆积。
+KEEP="${KEEP_VERSIONS:-2}"
+if [ "$KEEP" != "0" ]; then
+    RETENTION_PY="$ROOT/../../release-server/retention.py"
+    if [ -f "$RETENTION_PY" ]; then
+        step "清理旧版本（保留最近 $KEEP 版）"
+        python3 "$RETENTION_PY" "$DIST" --keep "$KEEP" || true
+    fi
+fi
+
 printf 'BUILD_OK\n'

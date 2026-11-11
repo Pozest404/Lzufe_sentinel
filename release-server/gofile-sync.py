@@ -111,15 +111,30 @@ def save_manifest(manifest):
     )
 
 
+def ver_key(v):
+    try:
+        return tuple(int(x) for x in v.split("."))
+    except (ValueError, AttributeError):
+        return (0,)
+
+
 def write_index(manifest):
     entries = [e for e in manifest["entries"] if e.get("link")]
-    entries.sort(key=lambda e: (e.get("version", ""), e.get("name", "")), reverse=True)
+    entries.sort(key=lambda e: (ver_key(e.get("version", "")), e.get("name", "")), reverse=True)
+
+    # 索引只展示最近 KEEP_VERSIONS 个版本；完整历史仍保留在 .gofile-sync.json。
+    keep = int(os.environ.get("KEEP_VERSIONS", "2") or 0)
+    if keep > 0:
+        versions = sorted({e.get("version") or "" for e in entries},
+                          key=ver_key, reverse=True)
+        allowed = set(versions[:keep])
+        entries = [e for e in entries if (e.get("version") or "") in allowed]
 
     lines = [
         "# 澜彩哨兵 · GoFile 下载索引",
         "",
         f"> 最后更新: {time.strftime('%Y-%m-%d %H:%M:%S')}",
-        f"> 条目数: {len(entries)}",
+        f"> 条目数: {len(entries)}（仅最近 {keep if keep > 0 else '全部'} 版）",
         "> 由 `release-server/gofile-sync.py` 自动维护，构建后自动更新。",
         "",
         "| 版本 | 文件 | 大小 | 下载页 |",
