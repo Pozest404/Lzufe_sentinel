@@ -201,9 +201,24 @@ if [ "${GOFILE_AUTO:-1}" != "0" ]; then
     fi
 fi
 
-# ---------------------------------------------------------------- 8. 清理旧版本
-# 只保留最近 KEEP_VERSIONS 个版本（默认 2）的 APK 与源码包，避免产物无限堆积。
 KEEP="${KEEP_VERSIONS:-2}"
+
+# ---------------------------------------------------------------- 8. 发布到 GitHub Releases
+# 上传 APK 与源码包，并按版本只保留最近 KEEP 个 release。
+# gh 未登录时自动跳过；GH_RELEASE=0 可关闭。
+if [ "${GH_RELEASE:-1}" != "0" ]; then
+    REL_SH="$ROOT/../../release-server/gh-release.sh"
+    if [ -f "$REL_SH" ] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+        step "发布到 GitHub Releases"
+        KEEP_VERSIONS="$KEEP" bash "$REL_SH" "$VER_NAME" "$APK" "$SRC_ZIP" \
+            || printf 'GitHub Release 发布失败，不影响本次产物\n'
+    else
+        printf '\ngh 未登录或脚本缺失，跳过 GitHub Release\n'
+    fi
+fi
+
+# ---------------------------------------------------------------- 9. 清理旧版本
+# 只保留最近 KEEP 个版本（默认 2）的 APK 与源码包，避免产物无限堆积。
 if [ "$KEEP" != "0" ]; then
     RETENTION_PY="$ROOT/../../release-server/retention.py"
     if [ -f "$RETENTION_PY" ]; then

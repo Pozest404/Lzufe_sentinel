@@ -48,6 +48,19 @@ VER_NAME=3.1.1 VER_CODE=33 ./build.sh
 
 `build.sh` 会用临时清单强制写入 `VER_*`，因此不需要手改 `AndroidManifest.xml`；但清单里的默认值也应同步更新，避免直接打开工程时版本对不上。
 
+## 发布规则（build.sh 自动执行，勿绕过）
+
+出包后按顺序自动完成，任何一步失败都不影响本地 APK：
+
+1. **GoFile 同步** — `release-server/gofile-sync.py`，按 SHA256 增量上传，未变化则复用链接。`GOFILE_AUTO=0` 关闭。
+2. **GitHub Release** — `release-server/gh-release.sh`，tag 为 `v<VER_NAME>`，上传 APK 与源码包；tag 已存在时 `--clobber` 覆盖。`GH_RELEASE=0` 关闭。
+3. **保留策略** — 只留最近 `KEEP_VERSIONS` 个版本（默认 2）的 APK 与源码包：
+   - `dist/` 由 `release-server/retention.py` 清理；
+   - GitHub 上多余的 release 连同 tag 一起删除；
+   - `gofile-links.md` 只展示这 2 版，完整历史仍归档在 `.gofile-sync.json`。
+
+发版必须递增 `VER_CODE`。根目录不再存放发布包，产物统一以 `dist/` 为准。
+
 产物：`dist/lancai-sentinel-v<VER_NAME>.apk`，同时把当前 Android + Rust 源码打进 `assets/lancai-sentinel-src-v<VER_NAME>.zip`，并附带 `assets/SOURCE_INFO.txt`。
 
 ## UI 结构（v3.3）
