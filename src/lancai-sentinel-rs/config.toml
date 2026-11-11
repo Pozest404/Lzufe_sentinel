@@ -1,0 +1,89 @@
+# 澜彩哨兵 · 配置说明（v3.0）
+#
+# 本版已移除微信通知监听与自动报名：只分析你主动粘贴或分享进来的文本。
+# 修改后无需重新编译；桌面 CLI 默认读取本文件，Android 端在「设置」里改对应项。
+
+[app]
+# 数据目录：相对路径以本文件所在目录为基准。
+data_dir = "data"
+# trace / debug / info / warn / error
+log_level = "info"
+timezone = "Asia/Shanghai"
+
+# ---------------------------------------------------------------------------
+# 规则打分权重。数值都是整数分，一般只需要改 [analysis] 的阈值。
+# ---------------------------------------------------------------------------
+[rules]
+score_baseline = 8          # 任何文本的底分
+keyword_first = 12          # 命中第一个关键词
+keyword_step = 6            # 之后每个关键词递增
+keyword_cap = 30            # 关键词加分上限
+custom_keyword_bonus = 8    # 每个追加关键词
+custom_keyword_cap = 16     # 追加关键词加分上限
+neg_credit_penalty = 30     # “没有学分”等否定
+neg_signup_penalty = 25     # “不需要报名”等否定
+neg_cancel_penalty = 30     # “活动取消”
+reschedule_penalty = 10     # “改期”
+penalty_cap = 60            # 总扣分上限
+credit_bonus = 22           # 抽到学分/志愿时长
+quota_bonus = 10            # 抽到名额
+deadline_bonus = 10         # 抽到截止时间
+how_bonus = 15              # 抽到报名方式
+when_bonus = 8              # 抽到时间
+where_bonus = 5             # 抽到地点
+urgent_bonus = 18           # “今晚/马上/先到先得”等
+attention_cap = 20          # 关注度加分上限
+
+# 追加词表（空数组表示只用内置词表）。例如：
+# keywords_append = ["素拓", "到梦空间"]
+keywords_append = []
+neg_credit_append = []
+neg_signup_append = []
+neg_cancel_append = []
+reschedule_append = []
+urgent_append = []
+
+# ---------------------------------------------------------------------------
+# 分析参数
+# ---------------------------------------------------------------------------
+[analysis]
+threshold = 55              # 重要线：10-100，越低越灵敏
+keyword_extra = ""          # 追加关键词，逗号分隔；每个 +8，封顶 +16
+
+# ---------------------------------------------------------------------------
+# AI 总结（可选）：兼容 OpenAI Chat Completions 协议。
+# DeepSeek / OpenAI / 通义千问 / 智谱 GLM / Kimi / Ollama 等只需改 base_url + model。
+# base_url 可以只填到 /v1，Rust 会自动补 /chat/completions；本地免密接口 api_key 可留空。
+# 环境变量：LANCAI_AI_KEY / LANCAI_AI_BASE_URL / LANCAI_AI_MODEL（旧版 LANCAI_DEEPSEEK_KEY 仍有效）。
+# ---------------------------------------------------------------------------
+[ai]
+enabled = false
+api_key = ""
+model = "deepseek-chat"
+base_url = "https://api.deepseek.com/chat/completions"
+timeout_seconds = 20
+max_tokens = 400
+temperature = 0.1
+dedupe_minutes = 10
+
+# ---------------------------------------------------------------------------
+# PushPlus 微信推送（可选）。也可以设环境变量 LANCAI_PUSHPLUS_TOKEN。
+# ---------------------------------------------------------------------------
+[pushplus]
+enabled = false
+token = ""
+url = "https://www.pushplus.plus/send"
+max_tries = 3
+retry_gap_ms = 2000
+
+# ---------------------------------------------------------------------------
+# 本地存储
+# ---------------------------------------------------------------------------
+[storage]
+msgs_file = "msgs.jsonl"        # 最近消息，JSONL
+max_messages = 300              # 超过后滚动删除最旧的
+last_summary_file = "last_summary.json"
+
+[debug]
+dump_summary = false        # CLI 打印字段抽取细节
+dry_run = false             # true = 跳过所有网络请求（也可用 LANCAI_DRY_RUN=1）

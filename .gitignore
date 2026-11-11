@@ -1,0 +1,35 @@
+# ---- 构建产物 ----
+target/
+build/
+dist/
+*.apk
+*.zip
+*.so
+*.class
+*.dex
+*.o
+*.rlib
+
+# ---- 签名与密钥：绝不入库 ----
+keys/
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# ---- 本机环境 / 工具链 ----
+.android-sdk/
+.cargo/
+.rustup/
+.uploads/
+
+# ---- 发布工具生成物 ----
+.gofile-sync.json
+gofile-links.md
+*.log
+
+# ---- 编辑器与系统 ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
