@@ -28,6 +28,10 @@ keys/
 gofile-links.md
 *.log
 
+# ---- 交接资料：只走 GoFile，不入库 ----
+.trae/
+项目说明.md
+
 # ---- 编辑器与系统 ----
 .idea/
 .vscode/
