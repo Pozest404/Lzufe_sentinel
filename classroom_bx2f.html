@@ -192,7 +192,10 @@
     });
     document.getElementById('tip').textContent='正在显示：'+labels[v];
     document.querySelectorAll('.room').forEach(function(r){
-      var n=[].filter.call(r.querySelectorAll('.ce'), function(c){return c.offsetParent!==null;}).length;
+      var n=0;
+      r.querySelectorAll('tbody td').forEach(function(td){
+        if([].some.call(td.querySelectorAll('.ce'), function(c){return c.offsetParent!==null;})) n++;
+      });
       r.querySelector('.rstat').textContent='已排 '+n+' / 35 个时段';
     });
   }
