@@ -265,6 +265,13 @@ public final class UiKit {
     public static LinearLayout appBar(Context c, String title,
                                       String[] glyphs, View.OnClickListener[] actions,
                                       View.OnClickListener onTitle) {
+        return appBar(c, title, null, glyphs, actions, onTitle);
+    }
+
+    /** 同 appBar，但可在标题右侧常驻一个徽标（如当前周次）。 */
+    public static LinearLayout appBar(Context c, String title, View badge,
+                                      String[] glyphs, View.OnClickListener[] actions,
+                                      View.OnClickListener onTitle) {
         LinearLayout bar = new LinearLayout(c);
         bar.setOrientation(LinearLayout.HORIZONTAL);
         bar.setGravity(Gravity.CENTER_VERTICAL);
@@ -276,6 +283,13 @@ public final class UiKit {
         t.setPadding(0, dp(c, 4), 0, dp(c, 4));
         if (onTitle != null) t.setOnClickListener(onTitle);
         bar.addView(t);
+        if (badge != null) {
+            LinearLayout.LayoutParams blp = new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+            blp.leftMargin = dp(c, 8);
+            bar.addView(badge, blp);
+        }
         bar.addView(new View(c), new LinearLayout.LayoutParams(0, 1, 1f));
 
         if (glyphs != null) {

@@ -233,6 +233,19 @@ public class TimetableActivity extends Activity {
         TextView title = UiKit.text(this, "课表", 20, 0xFF1B1B20);
         title.setTypeface(Typeface.create(Typeface.SERIF, Typeface.BOLD));
         bar.addView(title);
+
+        weekLabel = UiKit.text(this, "第 1 周", 11.5f, 0xFF5B5BD6);
+        weekLabel.setTypeface(null, Typeface.BOLD);
+        weekLabel.setGravity(Gravity.CENTER);
+        weekLabel.setSingleLine(true);
+        weekLabel.setEllipsize(TextUtils.TruncateAt.END);
+        weekLabel.setPadding(dp(9), dp(4), dp(9), dp(4));
+        UiKit.rounded(weekLabel, this, 0xFFEAEAFB, 0, 10);
+        LinearLayout.LayoutParams wlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        wlp.leftMargin = dp(8);
+        bar.addView(weekLabel, wlp);
+
         bar.addView(new View(this), new LinearLayout.LayoutParams(0,
                 ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
@@ -264,14 +277,6 @@ public class TimetableActivity extends Activity {
         head.setPadding(dp(14), dp(6), dp(8), dp(2));
 
         LinearLayout meta = UiKit.horizontal(this);
-        weekLabel = UiKit.text(this, "第 1 周", 12, 0xFF5B5BD6);
-        weekLabel.setTypeface(null, Typeface.BOLD);
-        weekLabel.setGravity(Gravity.CENTER);
-        weekLabel.setSingleLine(true);
-        weekLabel.setPadding(dp(10), dp(4), dp(10), dp(4));
-        UiKit.rounded(weekLabel, this, 0xFFEAEAFB, 0, 10);
-        meta.addView(weekLabel);
-
         TextView today = UiKit.text(this, "今天", 11.5f, 0xFF6E6E7A);
         today.setGravity(Gravity.CENTER);
         today.setPadding(dp(10), dp(4), dp(10), dp(4));
@@ -392,7 +397,7 @@ public class TimetableActivity extends Activity {
 
         weekLabel.setText(displayWeek == currentWeek
                 ? "第 " + displayWeek + " 周"
-                : "第 " + displayWeek + " 周 · 当前第 " + currentWeek + " 周");
+                : "第 " + displayWeek + " 周 · 本周 " + currentWeek);
         lastWeek = displayWeek;
         termHint.setText(termText(total));
         buildWeekStrip(total);

@@ -235,7 +235,40 @@ public class MainActivity extends Activity {
         head.setBackgroundColor(Color.WHITE);
         head.setPadding(0, dp(4), 0, 0);
 
-        head.addView(UiKit.appBar(this, "课表",
+        LinearLayout badges = UiKit.horizontal(this);
+        weekLabel = UiKit.text(this, "第 1 周", 11.5f, 0xFF5B5BD6);
+        weekLabel.setTypeface(null, Typeface.BOLD);
+        weekLabel.setGravity(Gravity.CENTER);
+        weekLabel.setSingleLine(true);
+        weekLabel.setEllipsize(TextUtils.TruncateAt.END);
+        weekLabel.setPadding(dp(9), dp(4), dp(9), dp(4));
+        UiKit.rounded(weekLabel, this, 0xFFEAEAFB, 0, 10);
+        weekLabel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showWeekPicker();
+            }
+        });
+        badges.addView(weekLabel);
+
+        TextView today = UiKit.text(this, "今天", 11.5f, 0xFF6E6E7A);
+        today.setGravity(Gravity.CENTER);
+        today.setPadding(dp(9), dp(4), dp(9), dp(4));
+        UiKit.rounded(today, this, 0xFFF2F2F7, 0, 10);
+        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        tlp.leftMargin = dp(6);
+        today.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (data == null) return;
+                displayWeek = currentWeek;
+                renderWeek();
+            }
+        });
+        badges.addView(today, tlp);
+
+        head.addView(UiKit.appBar(this, "课表", badges,
                 new String[]{"＋", "≡"},
                 new View.OnClickListener[]{
                         new View.OnClickListener() {
@@ -258,40 +291,6 @@ public class MainActivity extends Activity {
                                 TimetableActivity.class));
                     }
                 }));
-
-        LinearLayout meta = UiKit.horizontal(this);
-        meta.setPadding(dp(18), dp(4), dp(10), dp(8));
-        weekLabel = UiKit.text(this, "第 1 周", 12, 0xFF5B5BD6);
-        weekLabel.setTypeface(null, Typeface.BOLD);
-        weekLabel.setGravity(Gravity.CENTER);
-        weekLabel.setSingleLine(true);
-        weekLabel.setPadding(dp(10), dp(4), dp(10), dp(4));
-        UiKit.rounded(weekLabel, this, 0xFFEAEAFB, 0, 10);
-        weekLabel.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showWeekPicker();
-            }
-        });
-        meta.addView(weekLabel);
-
-        TextView today = UiKit.text(this, "今天", 11.5f, 0xFF6E6E7A);
-        today.setGravity(Gravity.CENTER);
-        today.setPadding(dp(10), dp(4), dp(10), dp(4));
-        UiKit.rounded(today, this, 0xFFF2F2F7, 0, 10);
-        LinearLayout.LayoutParams tlp = new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        tlp.leftMargin = dp(6);
-        today.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (data == null) return;
-                displayWeek = currentWeek;
-                renderWeek();
-            }
-        });
-        meta.addView(today, tlp);
-        head.addView(meta);
         return head;
     }
 
@@ -391,7 +390,7 @@ public class MainActivity extends Activity {
 
         weekLabel.setText(displayWeek == currentWeek
                 ? "第 " + displayWeek + " 周"
-                : "第 " + displayWeek + " 周 · 当前第 " + currentWeek + " 周");
+                : "第 " + displayWeek + " 周 · 本周 " + currentWeek);
         lastRenderWeek = displayWeek;
         if (backWeek != null) {
             backWeek.setVisibility(displayWeek == currentWeek ? View.GONE : View.VISIBLE);
