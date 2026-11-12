@@ -24,8 +24,8 @@ APP="$ROOT/app"
 BUILD="$ROOT/build"
 DIST="$ROOT/dist"
 KEYS="$ROOT/keys"
-VER_NAME="${VER_NAME:-3.7.2}"
-VER_CODE="${VER_CODE:-51}"
+VER_NAME="${VER_NAME:-3.7.5}"
+VER_CODE="${VER_CODE:-54}"
 SO_NAME="liblancai_sentinel.so"
 
 step() { printf '\n==> %s\n' "$*"; }
