@@ -17,6 +17,12 @@ SDK="${ANDROID_SDK_ROOT:-/workspace/.android-sdk}"
 BT="$SDK/build-tools/34.0.0"
 ANDROID_JAR="$SDK/platforms/android-34/android.jar"
 NDK="${ANDROID_NDK_HOME:-$SDK/ndk/26.3.11579264}"
+if [ ! -d "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin" ]; then
+    # 自动探测 $SDK/ndk/* 下哪个含 llvm-strip
+    for d in "$SDK/ndk"/*; do
+        [ -x "$d/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-strip" ] && NDK="$d" && break
+    done
+fi
 TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin"
 RUST_CRATE="${RUST_CRATE:-$ROOT/../lancai-sentinel-rs}"
 
