@@ -51,6 +51,17 @@ public final class RustCore {
         }
     }
 
+    /** 解析二维码灰度图（行优先），返回识别文本；识别不到或失败返回 null。 */
+    public static String decodeQr(int width, int height, byte[] gray) {
+        if (!LOADED || gray == null || width <= 0 || height <= 0) return null;
+        try {
+            return nativeDecodeQr(width, height, gray);
+        } catch (Throwable t) {
+            Log.e(TAG, "nativeDecodeQr 失败", t);
+            return null;
+        }
+    }
+
     /** 最近消息 JSON 数组；失败返回 null。 */
     public static String recent(Context c, int limit) {
         if (!LOADED) return null;
@@ -252,6 +263,8 @@ public final class RustCore {
     private static native int nativeClear(String cfgJson, String dataDir);
 
     private static native String nativeSelfTest(String cfgJson);
+
+    private static native String nativeDecodeQr(int width, int height, byte[] gray);
 
     private static native String nativeScheduleList(String cfgJson, String dataDir);
 

@@ -11,17 +11,21 @@ import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
@@ -35,10 +39,13 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.lancai.sentinel.core.CaptureProvider;
 import com.lancai.sentinel.core.Config;
 import com.lancai.sentinel.core.ReminderScheduler;
 import com.lancai.sentinel.core.RustCore;
 
+import java.io.File;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -59,6 +66,13 @@ public class DektActivity extends Activity {
     private boolean autoEnroll;
     private boolean injected;
     private final Handler ui = new Handler(Looper.getMainLooper());
+
+    // 扫码签到：站点的「扫码」只认原生桥（wx.scanQRCode 等），WebView 里没有相机能力，
+    // 这里用 JS 注入替身 wx 对象 + 原生拍照/相册 → Rust 解码 → 回调页面。
+    private static final String JS_BRIDGE_NAME = "LancaiBridge";
+    private static final int REQ_SCAN_CAMERA = 3101;
+    private static final int REQ_SCAN_GALLERY = 3102;
+    private Uri cameraScanUri;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -139,6 +153,8 @@ public class DektActivity extends Activity {
         }
         CookieManager.getInstance().setAcceptCookie(true);
 
+        web.addJavascriptInterface(new ScanBridge(), JS_BRIDGE_NAME);
+
         web.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onProgressChanged(WebView view, int newProgress) {
@@ -166,6 +182,7 @@ public class DektActivity extends Activity {
                 currentUrl = url;
                 if (progress != null) progress.setVisibility(View.GONE);
                 if (status != null) status.setVisibility(View.GONE);
+                installScanShim();
                 if (autoEnroll && !injected) {
                     injected = true;
                     ui.postDelayed(new Runnable() {
@@ -197,6 +214,224 @@ public class DektActivity extends Activity {
         page.addView(web, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         setContentView(page);
+    }
+
+    // ---------- 扫码签到 ----------
+
+    /** JS 侧入口（运行在 WebView 的 JS 线程，必须切回 UI 线程）。 */
+    private final class ScanBridge {
+        @JavascriptInterface
+        public void startScan(final String mode) {
+            ui.post(new Runnable() {
+                @Override
+                public void run() {
+                    beginScan(mode);
+                }
+            });
+        }
+    }
+
+    /**
+     * 注入 wx 替身：站点的扫码逻辑只认原生桥（wx.scanQRCode / dd.biz.util.scan / doschool），
+     * WebView 里没有相机能力，点「扫码」原本毫无反应。这里接管 wx.scanQRCode，
+     * 扫描结果按 WeChat JSSDK 的回调格式回灌给页面，页面自己的签到请求不受影响。
+     */
+    private void installScanShim() {
+        if (web == null) return;
+        String js = "(function(){try{"
+                + "try{localStorage.setItem('platform','notInDingTalk')}catch(e){}"
+                + "var w=window.wx||{};"
+                + "w.config=function(){return w};"
+                + "w.ready=function(cb){try{if(cb)cb()}catch(e){}return w};"
+                + "w.error=function(){return w};"
+                + "w.checkJsApi=function(o){try{if(o&&o.success)o.success({checkResult:{}})}catch(e){}return w};"
+                + "w.scanQRCode=function(o){window.__lancaiScanOpts=o||{};try{"
+                + JS_BRIDGE_NAME + ".startScan('wx')}catch(e){}return w};"
+                + "window.wx=w;"
+                + "window.__lancaiScanOk=function(t){var o=window.__lancaiScanOpts;"
+                + "if(o&&o.success){o.success({errMsg:'scanQRCode:ok',resultStr:t,scanType:'qrCode'})}"
+                + "else if(o&&o.complete){o.complete({errMsg:'scanQRCode:ok',resultStr:t})}};"
+                + "window.__lancaiScanFail=function(m){var o=window.__lancaiScanOpts;"
+                + "if(o&&o.cancel){o.cancel({errMsg:'scanQRCode:cancel'})}"
+                + "else if(o&&o.fail){o.fail({errMsg:'scanQRCode:fail',errMsgDetail:m||''})}};"
+                + "}catch(e){}})();";
+        web.evaluateJavascript(js, null);
+    }
+
+    private void beginScan(String mode) {
+        final String[] items = new String[]{"拍照扫码", "从相册选择"};
+        new AlertDialog.Builder(this)
+                .setTitle("扫码签到")
+                .setItems(items, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        if (which == 0) launchCamera();
+                        else launchGallery();
+                    }
+                })
+                .setNegativeButton("取消", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        notifyScanFail("已取消");
+                    }
+                })
+                .setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    @Override
+                    public void onCancel(DialogInterface dialog) {
+                        notifyScanFail("已取消");
+                    }
+                })
+                .show();
+    }
+
+    private void launchCamera() {
+        try {
+            String name = "scan_" + System.currentTimeMillis() + ".jpg";
+            File f = CaptureProvider.fileFor(this, name);
+            File dir = f.getParentFile();
+            if (dir != null && !dir.exists()) dir.mkdirs();
+            cameraScanUri = CaptureProvider.uriFor(this, name);
+            Intent i = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+            i.putExtra(MediaStore.EXTRA_OUTPUT, cameraScanUri);
+            i.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION | Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            if (i.resolveActivity(getPackageManager()) == null) {
+                launchGallery();
+                return;
+            }
+            startActivityForResult(i, REQ_SCAN_CAMERA);
+        } catch (Throwable t) {
+            launchGallery();
+        }
+    }
+
+    private void launchGallery() {
+        try {
+            Intent i = new Intent(Intent.ACTION_GET_CONTENT);
+            i.setType("image/*");
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            startActivityForResult(Intent.createChooser(i, "选择二维码图片"), REQ_SCAN_GALLERY);
+        } catch (Throwable t) {
+            notifyScanFail("无法打开图片选择器");
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode != REQ_SCAN_CAMERA && requestCode != REQ_SCAN_GALLERY) return;
+        if (resultCode != RESULT_OK) {
+            notifyScanFail("已取消");
+            return;
+        }
+        Uri uri = requestCode == REQ_SCAN_CAMERA
+                ? cameraScanUri
+                : (data == null ? null : data.getData());
+        if (uri == null) {
+            notifyScanFail("没有拿到图片");
+            return;
+        }
+        decodeQrAsync(uri);
+    }
+
+    /** 图片解码 + 灰度转换在子线程，二维码识别由 Rust 完成。 */
+    private void decodeQrAsync(final Uri uri) {
+        showStatus("正在识别二维码…");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String text = null;
+                String err = null;
+                try {
+                    Bitmap bmp = loadBitmap(uri, 1600);
+                    if (bmp == null) {
+                        err = "图片读取失败";
+                    } else {
+                        int w = bmp.getWidth();
+                        int h = bmp.getHeight();
+                        int[] px = new int[w * h];
+                        bmp.getPixels(px, 0, w, 0, 0, w, h);
+                        bmp.recycle();
+                        byte[] gray = new byte[w * h];
+                        for (int i = 0; i < px.length; i++) {
+                            int p = px[i];
+                            int r = (p >> 16) & 0xFF;
+                            int g = (p >> 8) & 0xFF;
+                            int b = p & 0xFF;
+                            gray[i] = (byte) ((r * 299 + g * 587 + b * 114) / 1000);
+                        }
+                        text = RustCore.decodeQr(w, h, gray);
+                        if (text == null) err = "未识别到二维码，请靠近后重拍";
+                    }
+                } catch (Throwable t) {
+                    err = "识别失败：" + t.getClass().getSimpleName();
+                }
+                final String okText = text;
+                final String failMsg = err;
+                ui.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        if (okText != null) {
+                            showStatus("已识别二维码：" + shorten(okText));
+                            deliverScanResult(okText);
+                        } else {
+                            notifyScanFail(failMsg == null ? "识别失败" : failMsg);
+                        }
+                    }
+                });
+            }
+        }).start();
+    }
+
+    private Bitmap loadBitmap(Uri uri, int maxSide) throws Exception {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        InputStream in = getContentResolver().openInputStream(uri);
+        try {
+            BitmapFactory.decodeStream(in, null, bounds);
+        } finally {
+            closeQuietly(in);
+        }
+        int sample = 1;
+        int side = Math.max(bounds.outWidth, bounds.outHeight);
+        while (side / sample > maxSide) sample *= 2;
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = sample;
+        opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
+        in = getContentResolver().openInputStream(uri);
+        try {
+            return BitmapFactory.decodeStream(in, null, opts);
+        } finally {
+            closeQuietly(in);
+        }
+    }
+
+    private static void closeQuietly(InputStream in) {
+        if (in != null) {
+            try {
+                in.close();
+            } catch (Throwable ignore) {
+            }
+        }
+    }
+
+    private void deliverScanResult(String text) {
+        if (web == null || text == null) return;
+        web.evaluateJavascript("if(window.__lancaiScanOk){window.__lancaiScanOk("
+                + JSONObject.quote(text) + ")}", null);
+    }
+
+    private void notifyScanFail(String msg) {
+        String safe = msg == null ? "" : msg;
+        if (web != null) {
+            web.evaluateJavascript("if(window.__lancaiScanFail){window.__lancaiScanFail("
+                    + JSONObject.quote(safe) + ")}", null);
+        }
+        showStatus("扫码失败：" + (safe.isEmpty() ? "未知原因" : safe));
+    }
+
+    private static String shorten(String s) {
+        if (s == null) return "";
+        return s.length() <= 48 ? s : s.substring(0, 48) + "…";
     }
 
     /** 把当前第二课堂活动记到课表：时间等解析全部交给 Rust。 */

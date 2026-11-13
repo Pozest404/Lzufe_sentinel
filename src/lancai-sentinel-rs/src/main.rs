@@ -59,6 +59,15 @@ enum Cmd {
         #[arg(long, default_value = "本周五 19:00 图书馆报告厅讲座，0.5 学分，限 80 人，群内报名。")]
         text: String,
     },
+    /// 性能基准：同进程内多次 analyze_text，输出单次平均耗时（ms）
+    Bench {
+        #[arg(long, default_value = "5000")]
+        n: u32,
+        #[arg(long, default_value = "本周五 19:00 图书馆报告厅讲座，0.5 学分，限 80 人，群内报名。主讲人王教授。")]
+        text: String,
+        #[arg(long, default_value = "手动输入")]
+        source: String,
+    },
 }
 
 #[derive(Subcommand, Debug)]
@@ -151,6 +160,22 @@ fn main() -> Result<()> {
                 Some(t) => println!("{}", t),
                 None => println!("AI 未启用（也可能是 dry_run）"),
             }
+        }
+        Cmd::Bench { n, text, source } => {
+            use std::time::Instant;
+            let mut e = Engine::new(cfg, data_dir)?;
+            // warmup
+            for _ in 0..20 {
+                let _ = e.analyze_text(&source, &text, false);
+            }
+            let t0 = Instant::now();
+            for _ in 0..n {
+                let _ = e.analyze_text(&source, &text, false);
+            }
+            let dt = t0.elapsed();
+            let per_call_us = dt.as_micros() as f64 / n as f64;
+            println!("bench: n={n}  total={:.3}ms  avg={per_call_us:.1} µs/call  ({:.3} ms/call)",
+                     dt.as_secs_f64() * 1000.0, per_call_us / 1000.0);
         }
     }
     Ok(())

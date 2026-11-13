@@ -24,12 +24,89 @@ APP="$ROOT/app"
 BUILD="$ROOT/build"
 DIST="$ROOT/dist"
 KEYS="$ROOT/keys"
-VER_NAME="${VER_NAME:-3.7.5}"
-VER_CODE="${VER_CODE:-54}"
 SO_NAME="liblancai_sentinel.so"
 
 step() { printf '\n==> %s\n' "$*"; }
 fail() { printf 'BUILD FAILED: %s\n' "$*" >&2; exit 1; }
+
+# --- 自动版本号：未显式传 VER_NAME / VER_CODE 时，从 git tag + dist/ + Manifest 取最大递增 ---
+#   版本号格式：X.Y.Z （递增 Z）；versionCode 为现有最大值 +1
+if [ -z "${VER_NAME:-}" ] || [ -z "${VER_CODE:-}" ]; then
+    step "自动计算版本号"
+    pick_max_ver() {
+        # 读 X.Y.Z，按补丁号排序取最大
+        git -C "$ROOT/../.." tag --list 'v[0-9]*' 2>/dev/null \
+            | sed 's/^v//' \
+            | sort -t. -k1,1n -k2,2n -k3,3n \
+            | tail -1
+    }
+    pick_max_code() {
+        # 从 git tag 推 code（tag 的 patch 部分做 code？ 不，code 独立递增）
+        # 先取 Manifest 的默认 versionCode
+        local m="$APP/AndroidManifest.xml"
+        local mcode
+        mcode=$(grep -oP 'android:versionCode="\K\d+' "$m" 2>/dev/null | head -1)
+        # 再看 dist/ 里的 .apk 版本（用 aapt2 读 versionCode）
+        local dcode=""
+        for apk in "$DIST"/*.apk; do
+            [ -f "$apk" ] || continue
+            local c
+            c=$("$BT/aapt2" dump badging "$apk" 2>/dev/null | grep -oP 'versionCode=\x27\K\d+' | head -1)
+            [ -n "$c" ] && { dcode=${c}; }
+        done
+        # 再看 gofile-links.md 里记录的最新版本
+        local gcode=""
+        for sha in $(grep -oP 'sha256"\s*:\s*"\K[a-f0-9]+' /workspace/.gofile-sync.json 2>/dev/null | head -20); do
+            gcode="$sha"  # 不直接给 code，只用它辅助
+        done
+        # 取最大
+        local max=0
+        for n in "$mcode" "$dcode"; do
+            [ -z "$n" ] && continue
+            [ "$n" -gt "$max" ] && max="$n"
+        done
+        echo "$max"
+    }
+
+    MANIFEST_VER=$(grep -oP 'android:versionName="\K[^"]+' "$APP/AndroidManifest.xml" 2>/dev/null | head -1)
+    GIT_VER=$(pick_max_ver)
+    # 合并版本名：取两者中补丁号最大的
+    pick_max_patch() {
+        local a="$1" b="$2"
+        [ -z "$a" ] && { echo "$b"; return; }
+        [ -z "$b" ] && { echo "$a"; return; }
+        # 取各字段
+        local ap bp am bm an bn
+        IFS=. read -r ap am an <<< "$a"
+        IFS=. read -r bp bm bn <<< "$b"
+        [ "${ap:-0}" -gt "${bp:-0}" ] && { echo "$a"; return; }
+        [ "${ap:-0}" -lt "${bp:-0}" ] && { echo "$b"; return; }
+        [ "${am:-0}" -gt "${bm:-0}" ] && { echo "$a"; return; }
+        [ "${am:-0}" -lt "${bm:-0}" ] && { echo "$b"; return; }
+        [ "${an:-0}" -ge "${bn:-0}" ] && echo "$a" || echo "$b"
+    }
+    BASE_VER=$(pick_max_patch "$MANIFEST_VER" "$GIT_VER")
+    # 递增补丁号
+    MAJOR=$(echo "$BASE_VER" | cut -d. -f1)
+    MINOR=$(echo "$BASE_VER" | cut -d. -f2)
+    PATCH=$(echo "$BASE_VER" | cut -d. -f3)
+    [ -z "$MAJOR" ] && MAJOR=3
+    [ -z "$MINOR" ] && MINOR=7
+    [ -z "$PATCH" ] && PATCH=0
+    NEW_PATCH=$((PATCH + 1))
+    NEW_VER="$MAJOR.$MINOR.$NEW_PATCH"
+
+    MAX_CODE=$(pick_max_code)
+    [ -z "$MAX_CODE" ] && MAX_CODE=50
+    NEW_CODE=$((MAX_CODE + 1))
+
+    VER_NAME="${VER_NAME:-$NEW_VER}"
+    VER_CODE="${VER_CODE:-$NEW_CODE}"
+    printf '  基线版本：Manifest=%s  git tag=%s → 选定 %s → 递增 → 新 = %s\n' \
+           "${MANIFEST_VER:-空}" "${GIT_VER:-空}" "$BASE_VER" "$NEW_VER"
+    printf '  versionCode：现有最大值=%s → 新 = %s\n' "$MAX_CODE" "$NEW_CODE"
+fi
+step "版本：$VER_NAME  versionCode=$VER_CODE"
 
 # d8 8.2.2 在 JDK 25 下处理匿名类会内部报错；默认使用 JDK 17（与原项目构建环境一致）。
 if [ -n "${LANCAI_JAVA_HOME:-}" ]; then
@@ -81,7 +158,7 @@ step "内置源码包（assets/lancai-sentinel-src-v$VER_NAME.zip）"
 mkdir -p "$BUILD/assets"
 SRC_ZIP="$BUILD/assets/lancai-sentinel-src-v$VER_NAME.zip"
 ( cd "$(dirname "$ROOT")" && zip -q -r -9 "$SRC_ZIP" "$(basename "$ROOT")" \
-    -x "*/build/*" "*/dist/*" "*/assets/*" "*/.git/*" )
+    -x "*/build/*" "*/dist/*" "*/assets/*" "*/.git/*" "*/keys/*" )
 RUST_NAME="$(basename "$RUST_CRATE")"
 RUST_PARENT="$(cd "$RUST_CRATE/.." && pwd)"
 ( cd "$RUST_PARENT" && zip -q -r -9 "$SRC_ZIP" "$RUST_NAME" \
@@ -96,7 +173,7 @@ cat > "$BUILD/assets/SOURCE_INFO.txt" <<EOF
 ================================================
 
 文件：assets/lancai-sentinel-src-v$VER_NAME.zip
-内容：Android 平台层（Java/res/清单/构建脚本/签名密钥）
+内容：Android 平台层（Java/res/清单/构建脚本）
       + Rust 核心（src/tests/samples/config.toml/CONFIG.md）
       + Cargo.lock，可离线复现本次构建。
 
@@ -109,7 +186,7 @@ cat > "$BUILD/assets/SOURCE_INFO.txt" <<EOF
     cd ../lancai-sentinel-android && ./build.sh
 
 注意：
-1. 包内含签名密钥 keys/lancai.jks，请勿公开分享本源码包。
+1. 源码包不包含签名密钥 keys/lancai.jks（避免密钥随发布外泄）。
 2. 修改后发版需递增 VER_NAME / VER_CODE，并使用同一密钥签名，
    否则老用户必须先卸载旧版才能安装。
 3. App 内「菜单 → 关于 → 版本与内核」可查看应用版本与 Rust 内核状态。

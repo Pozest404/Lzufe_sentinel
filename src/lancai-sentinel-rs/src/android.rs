@@ -6,7 +6,7 @@
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::path::PathBuf;
 
-use jni::objects::{JClass, JString};
+use jni::objects::{JByteArray, JClass, JString};
 use jni::sys::{jboolean, jint, jlong, jstring};
 use jni::JNIEnv;
 use serde_json::json;
@@ -50,6 +50,24 @@ pub extern "system" fn Java_com_lancai_sentinel_core_RustCore_nativeVersion(
             env!("CARGO_PKG_VERSION")
         ),
     )
+}
+
+/// 解析二维码：`width`/`height` + 行优先灰度字节，返回文本；识别不到返回 null。
+#[no_mangle]
+pub extern "system" fn Java_com_lancai_sentinel_core_RustCore_nativeDecodeQr(
+    mut env: JNIEnv,
+    _class: JClass,
+    width: jint,
+    height: jint,
+    data: JByteArray,
+) -> jstring {
+    let out = catch_unwind(AssertUnwindSafe(|| -> Option<String> {
+        let bytes = env.convert_byte_array(&data).ok()?;
+        crate::qr::decode_gray(width.max(0) as usize, height.max(0) as usize, &bytes)
+    }))
+    .ok()
+    .flatten();
+    result_or_null(&mut env, out)
 }
 
 /// 分析文本，返回 MessageOutcome JSON。

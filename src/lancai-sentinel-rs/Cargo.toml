@@ -22,6 +22,7 @@ clap = { version = "4", features = ["derive"] }
 ureq = { version = "2", features = ["json", "tls"] }
 anyhow = "1"
 thiserror = "1"
+rqrr = { version = "0.11.0", default-features = false }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21"
@@ -31,3 +32,6 @@ opt-level = "z"
 lto = true
 codegen-units = 1
 strip = "symbols"
+
+[dev-dependencies]
+qrcode = { version = "0.14.1", default-features = false }

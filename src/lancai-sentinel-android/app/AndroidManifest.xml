@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!-- 扫码签到拍照时由系统相机处理，App 本身不申请相机权限。 -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -50,6 +53,12 @@
         <activity
             android:name=".ui.TimetableActivity"
             android:exported="false" />
+
+        <provider
+            android:name=".core.CaptureProvider"
+            android:authorities="com.lancai.sentinel.capture"
+            android:exported="false"
+            android:grantUriPermissions="true" />
 
         <!-- 只处理本机排期的提醒与开机恢复，不监听任何系统通知。 -->
         <receiver

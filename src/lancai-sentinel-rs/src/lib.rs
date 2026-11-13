@@ -7,6 +7,7 @@ pub mod enroll;
 pub mod model;
 pub mod net;
 pub mod pipeline;
+pub mod qr;
 pub mod rule_engine;
 pub mod schedule;
 pub mod store;
