@@ -5,18 +5,20 @@
 
 ---
 
-## 待发布 · v3.7.6 · 2026-11-13（扫码签到修复）
+## 最新发布 · v3.7.6 · 2026-11-13 15:48（扫码签到修复）
 
 | 项 | 值 |
 |---|---|
 | 版本 | `3.7.6` / `versionCode=55`（aapt2 badging 实测） |
 | 包名 | `com.lancai.sentinel` ✅ |
-| cargo test | 45 passed, 0 failed（26 + 2 + 5 + 12 + 0 + 0；新增 qr 模块 4 例） |
-| APK | 6,788,429 字节 · SHA256 `4786b03ea2f24389c4f786a961628f7102a3ec7f194529aa9ba0c580f693dbd3` |
+| commit | `af2143f fix(dekt): 修复扫码签到无反应` + `719c8a0 build.sh: NDK 自动探测` |
+| cargo test | 45 passed, 0 failed（qr 模块 4 例 + 原有 41 例） |
+| APK | 6,788,429 字节 · SHA256 `144147be37cd1e4d4c5666e27b907b6c996c961192d98898bcb576d2d138b496` |
 | 签名证书 SHA-256 | `450d288a6428f3e762efd4b5d37070ba806d2e7d45b7cd1ea66cecf4e01e5d42`（与 v3.7.5 同一把 → 可覆盖升级） |
-| 构建 | `GH_RELEASE=0 GOFILE_AUTO=0 KEEP_VERSIONS=0 VER_NAME=3.7.6 VER_CODE=55 ./build.sh` → 最后一行 `BUILD_OK` |
-| 发布 | ❌ **未发布**：本机 `gh` 未登录、`/workspace/.gofile-sync.json` 不存在（workspace 重置丢失凭据），无凭据无法上传 |
-| 状态 | 改动未提交（HEAD 仍为 `2591805 feat: update workspace`） |
+| GitHub Release | https://github.com/Pozest404/Lzufe_sentinel/releases/tag/v3.7.6 ✅ 已发布 |
+| Release 资产 | APK（6.79MB）+ 源码包（212KB，**keys/* 已排除**） |
+| Release 时间 | 2026-11-13 07:48 UTC |
+| GoFile | 未上传（环境重置丢失 token；build.sh `GOFILE_AUTO=1`，token 在 `.gofile-sync.json` 恢复后下次构建自动上传） |
 
 **问题根因（实测取证的第三方站点代码）**
 
