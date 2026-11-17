@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <meta name="color-scheme" content="dark" />
-<title>你的昵称 · 个人主页</title>
+<title>Kiopen · 个人主页</title>
 <style>
   :root {
     --accent-1: #7c5cff;
@@ -332,35 +332,35 @@
           <span class="avatar-status" aria-hidden="true"></span>
         </div>
         <p class="eyebrow">Hello, I'm</p>
-        <h1 class="name">你的昵称</h1>
-        <p class="typing"><span id="type">全栈开发爱好者</span><span class="caret" aria-hidden="true"></span></p>
+        <h1 class="name">Kiopen</h1>
+        <p class="typing"><span id="type">Rust / Linux 学习者</span><span class="caret" aria-hidden="true"></span></p>
       </header>
 
       <!-- 关于我 -->
       <section class="about reveal" style="animation-delay: 0.3s">
-        <strong>全栈开发爱好者</strong>，专注 Web 开发与开源项目分享，热爱探索技术与创意的结合。日常写 Java / Vue / Spring Boot，喜欢把想法做成真正能被使用的东西。
+        <strong>Rust / Linux 学习者</strong>，正在探索 Wayland 桌面生态与系统级开发，喜欢从实际问题出发写点小工具。目前在捣鼓 Pop!_OS 护眼叠加层 eyecare-overlay，也常用 Python / SQL / R 处理数据。
       </section>
 
       <!-- 技术标签 -->
       <div class="tags reveal" style="animation-delay: 0.4s">
-        <span>Java</span>
-        <span>Vue</span>
-        <span>Spring Boot</span>
-        <span>开源</span>
+        <span>Rust</span>
+        <span>Python</span>
+        <span>SQL</span>
+        <span>R</span>
       </div>
 
       <div class="divider reveal" style="animation-delay: 0.48s"></div>
 
       <!-- 数据统计 -->
       <section class="stats reveal" style="animation-delay: 0.55s" aria-label="数据统计">
-        <div class="stat"><b>32</b><small>仓库</small></div>
-        <div class="stat"><b>128</b><small>获 Star</small></div>
-        <div class="stat"><b>56</b><small>关注者</small></div>
+        <div class="stat"><b>1</b><small>仓库</small></div>
+        <div class="stat"><b>1</b><small>近一年贡献</small></div>
+        <div class="stat"><b>1</b><small>关注中</small></div>
       </section>
 
       <!-- 联系方式 -->
       <nav class="contact reveal" style="animation-delay: 0.66s" aria-label="联系方式">
-        <a href="https://gitee.com/yourname" target="_blank" rel="noopener">
+        <a href="https://gitee.com/kiopen" target="_blank" rel="noopener">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="m8 6-5 6 5 6M16 6l5 6-5 6"></path>
           </svg>
@@ -381,7 +381,7 @@
         </a>
       </nav>
 
-      <p class="foot reveal" style="animation-delay: 0.76s">© 2026 你的昵称 · Designed with ♥</p>
+      <p class="foot reveal" style="animation-delay: 0.76s">© 2026 Kiopen · Designed with ♥</p>
     </main>
   </div>
 
@@ -390,7 +390,7 @@
     (function () {
       var el = document.getElementById('type');
       if (!el) return;
-      var phrases = ['全栈开发爱好者', '专注 Web 开发', '热爱开源与分享', '用代码把想法变成现实'];
+      var phrases = ['Rust / Linux 学习者', '探索 Wayland 桌面生态', 'Python · SQL · R', '把想法写成小工具'];
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
         el.textContent = phrases[0];
         return;
