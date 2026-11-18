@@ -4,6 +4,10 @@
 
 **Rust / Linux 学习者** · 探索 Wayland 桌面生态与系统级开发
 
+### ✨ [👉 点这里进入我的动画版主页 👈](https://37kf1yb4mdrgszv1wu5.traesite.cn/)
+
+极光渐变 · 毛玻璃卡片 · 粒子背景 · 打字机动效
+
 [![Gitee](https://img.shields.io/badge/Gitee-kiopen-red?logo=gitee&logoColor=white)](https://gitee.com/kiopen)
 [![GitHub](https://img.shields.io/badge/GitHub-Pozest404-181717?logo=github&logoColor=white)](https://github.com/Pozest404)
 [![Email](https://img.shields.io/badge/Email-zpozest@163.com-blue?logo=gmail&logoColor=white)](mailto:zpozest@163.com)
