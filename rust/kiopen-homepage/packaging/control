@@ -1,0 +1,12 @@
+Package: kiopen-homepage
+Version: 2.0.0
+Section: web
+Priority: optional
+Architecture: amd64
+Installed-Size: __SIZE__
+Depends: git
+Maintainer: Kiopen <zpozest@163.com>
+Homepage: https://gitee.com/kiopen/kiopen-homepage
+Description: Kiopen 个人主页可视化编辑器
+ 用 Rust 编写的本地网页编辑器，用于修改 kiopen.icu 的内容并一键发布。
+ 单文件静态二进制，仅监听 127.0.0.1，除 git 外无运行时依赖。

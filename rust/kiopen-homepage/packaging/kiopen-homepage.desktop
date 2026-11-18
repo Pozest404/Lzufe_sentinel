@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Kiopen 主页编辑器
+Name[en]=Kiopen Homepage Editor
+Comment=编辑并发布 kiopen.icu 个人主页
+Exec=kiopen-homepage
+Icon=kiopen-homepage
+Terminal=false
+Categories=Development;WebDevelopment;
+Keywords=kiopen;homepage;editor;
+StartupNotify=true

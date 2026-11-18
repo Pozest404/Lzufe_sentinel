@@ -1,0 +1,18 @@
+[package]
+name = "kiopen-homepage"
+version = "2.0.0"
+edition = "2021"
+description = "Kiopen 个人主页可视化编辑器"
+license = "MIT"
+repository = "https://gitee.com/kiopen/kiopen-homepage"
+
+[[bin]]
+name = "kiopen-homepage"
+path = "src/main.rs"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
