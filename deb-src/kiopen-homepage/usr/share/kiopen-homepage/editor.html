@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Kiopen 主页编辑器</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #121933;
+    --panel-2: #17203f;
+    --border: rgba(255, 255, 255, 0.1);
+    --text: #e7ecff;
+    --muted: #8b97b8;
+    --accent: #8b5cf6;
+    --accent-2: #22d3ee;
+    --ok: #34d399;
+    --err: #f87171;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans SC", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    background: rgba(18, 25, 51, 0.9);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+  }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .logo {
+    width: 26px; height: 26px; border-radius: 8px;
+    display: grid; place-items: center; font-size: 13px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: #0b1020;
+  }
+  .path {
+    flex: 1;
+    min-width: 0;
+    font-size: 11.5px;
+    color: var(--muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  }
+  .actions { display: flex; gap: 8px; flex: none; }
+  button, .btn-link {
+    font: inherit;
+    font-size: 12.5px;
+    padding: 7px 13px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: border-color 0.15s, background 0.15s, transform 0.15s;
+    white-space: nowrap;
+  }
+  button:hover, .btn-link:hover { border-color: rgba(255,255,255,0.28); }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: linear-gradient(135deg, #7c3aed, #5b21b6);
+    border-color: transparent;
+    font-weight: 600;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  main { flex: 1; display: grid; grid-template-columns: 400px 1fr; min-height: 0; }
+  aside {
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--panel);
+  }
+  .tabs { display: flex; gap: 4px; padding: 10px 12px 0; flex: none; }
+  .tab {
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 12.5px;
+  }
+  .tab.active { background: var(--panel-2); color: var(--text); border-color: var(--border); }
+  .panel { display: none; padding: 14px 14px 24px; overflow-y: auto; min-height: 0; }
+  .panel.active { display: block; flex: 1; }
+  label { display: block; font-size: 11.5px; color: var(--muted); margin-bottom: 12px; }
+  label > input, label > textarea, label > select {
+    display: block;
+    width: 100%;
+    margin-top: 5px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #0d1428;
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  label > input:focus, label > textarea:focus, label > select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.18);
+  }
+  textarea { resize: vertical; line-height: 1.55; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .hint { font-size: 11.5px; color: var(--muted); line-height: 1.6; margin: 0 0 10px; }
+  .pcard {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px;
+    margin-bottom: 14px;
+    background: rgba(255, 255, 255, 0.02);
+  }
+  .pcard h4 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    color: var(--accent-2);
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .avatar-preview { margin-top: 4px; }
+  .avatar-preview img {
+    width: 72px; height: 72px; border-radius: 16px; object-fit: cover;
+    border: 1px solid var(--border); background: #0d1428;
+  }
+  #panel-raw { display: none; }
+  #panel-raw.active { display: flex; flex-direction: column; }
+  #raw {
+    flex: 1;
+    min-height: 320px;
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #0a0f21;
+    color: #b9c6ea;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.55;
+    resize: none;
+    outline: none;
+  }
+  #publishLog {
+    flex: none;
+    margin: 0 14px 14px;
+    padding: 10px;
+    max-height: 170px;
+    overflow: auto;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #0a0f21;
+    color: #9fb0d8;
+    font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+    font-size: 11.5px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .preview { display: flex; flex-direction: column; min-width: 0; min-height: 0; background: #070b18; }
+  .preview-bar {
+    flex: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 14px;
+    font-size: 11.5px;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  #status { color: var(--accent-2); }
+  iframe { flex: 1; width: 100%; border: 0; background: #0b1020; }
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translate(-50%, 20px);
+    padding: 10px 18px;
+    border-radius: 10px;
+    background: #16204a;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s, transform 0.22s;
+    z-index: 50;
+    max-width: 80vw;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+  .toast.err { border-color: rgba(248, 113, 113, 0.5); color: #fecaca; }
+  .footer-note { padding: 0 14px 18px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; }
+    aside { border-right: none; border-bottom: 1px solid var(--border); }
+    .preview { height: 58vh; }
+    .path { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><span class="logo">K</span> Kiopen 主页编辑器</div>
+  <div class="path" id="sitePath">加载中…</div>
+  <div class="actions">
+    <button id="btnRefresh" type="button">刷新预览</button>
+    <button id="btnSave" class="primary" type="button">保存</button>
+    <button id="btnPublish" type="button">发布</button>
+    <a class="btn-link" href="https://kiopen.icu/" target="_blank" rel="noopener">打开站点 ↗</a>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="tabs">
+      <button class="tab active" data-tab="basic" type="button">常用</button>
+      <button class="tab" data-tab="projects" type="button">项目</button>
+      <button class="tab" data-tab="raw" type="button">源码</button>
+    </div>
+
+    <div class="panel active" id="panel-basic">
+      <label>姓名<input id="f-name" /></label>
+      <label>简介（支持 HTML）<textarea id="f-desc" rows="5"></textarea></label>
+      <label>打字机文案（每行一句）<textarea id="f-phrases" rows="4"></textarea></label>
+      <label>技术标签（逗号分隔）<input id="f-tags" /></label>
+      <div class="row">
+        <label>GitHub<input id="f-github" /></label>
+        <label>Gitee<input id="f-gitee" /></label>
+      </div>
+      <label>邮箱<input id="f-email" /></label>
+      <label>网页标题<input id="f-title" /></label>
+      <label>SEO 描述<textarea id="f-seo" rows="3"></textarea></label>
+      <label>头像（上传后自动替换 avatar.png）<input id="f-avatar" type="file" accept="image/*" /></label>
+      <div class="avatar-preview"><img id="avatarPreview" alt="头像预览" /></div>
+    </div>
+
+    <div class="panel" id="panel-projects">
+      <div id="projectsForm"></div>
+    </div>
+
+    <div class="panel" id="panel-raw">
+      <p class="hint">直接编辑完整 HTML。保存会覆盖 index.html，并自动备份到 .backups/。</p>
+      <textarea id="raw" spellcheck="false"></textarea>
+      <div class="row">
+        <button id="btnRawLoad" type="button">重新载入</button>
+        <button id="btnRawSave" class="primary" type="button">保存源码</button>
+      </div>
+    </div>
+
+    <pre id="publishLog" hidden></pre>
+    <div class="footer-note">发布前请确保本机已配置 GitHub 认证（gh auth login 或 SSH）。发布后约 1 分钟生效。</div>
+  </aside>
+
+  <section class="preview">
+    <div class="preview-bar"><span>实时预览</span><span id="status">加载中…</span></div>
+    <iframe id="frame" src="/preview/" title="主页预览"></iframe>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var $ = function (s) { return document.querySelector(s); };
+  var doc = null;
+  var projectData = [];
+  var toastTimer = null;
+
+  function toast(msg, ok) {
+    var el = $("#toast");
+    el.textContent = msg;
+    el.classList.toggle("err", ok === false);
+    el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { el.classList.remove("show"); }, 3200);
+  }
+
+  function refreshPreview() {
+    $("#frame").src = "/preview/?t=" + Date.now();
+  }
+
+  function extractPhrases(src) {
+    var m = src.match(/var phrases = \[([\s\S]*?)\];/);
+    if (!m) return [];
+    var out = [];
+    var re = /'((?:\\.|[^'\\])*)'/g;
+    var hit;
+    while ((hit = re.exec(m[1])) !== null) {
+      out.push(hit[1].replace(/\\'/g, "'").replace(/\\\\/g, "\\"));
+    }
+    return out;
+  }
+
+  function load() {
+    fetch("/api/site", { cache: "no-store" })
+      .then(function (r) { return r.text(); })
+      .then(function (src) {
+        $("#raw").value = src;
+        doc = new DOMParser().parseFromString(src, "text/html");
+        fill();
+        refreshPreview();
+        return fetch("/api/info").then(function (r) { return r.json(); });
+      })
+      .then(function (info) {
+        $("#sitePath").textContent = info.dir + (info.remote ? "  ·  " + info.remote : "");
+        $("#status").textContent = "已加载";
+      })
+      .catch(function (e) { toast("加载失败：" + e.message, false); });
+  }
+
+  function fill() {
+    var q = function (s) { return doc.querySelector(s); };
+    $("#f-name").value = (q(".name") || {}).textContent ? q(".name").textContent.trim() : "";
+    var desc = q(".hero-desc");
+    $("#f-desc").value = desc ? desc.innerHTML.trim() : "";
+    $("#f-phrases").value = extractPhrases($("#raw").value).join("\n");
+    $("#f-tags").value = [].map.call(doc.querySelectorAll(".hero .tags span"), function (x) { return x.textContent.trim(); }).join(", ");
+
+    var gh = q('.socials a[aria-label="GitHub"]');
+    var gt = q('.socials a[aria-label="Gitee"]');
+    var em = q('.socials a[aria-label="邮箱"]');
+    $("#f-github").value = gh ? gh.getAttribute("href") || "" : "";
+    $("#f-gitee").value = gt ? gt.getAttribute("href") || "" : "";
+    $("#f-email").value = em ? (em.getAttribute("href") || "").replace(/^mailto:/, "") : "";
+    $("#f-title").value = doc.title;
+    var seo = q('meta[name="description"]');
+    $("#f-seo").value = seo ? seo.getAttribute("content") || "" : "";
+    $("#avatarPreview").src = "/preview/avatar.png?t=" + Date.now();
+
+    projectData = [].map.call(doc.querySelectorAll(".project"), function (p) {
+      var badge = p.querySelector(".badge");
+      return {
+        title: (p.querySelector("h3") || {}).textContent ? p.querySelector("h3").textContent.trim() : "",
+        desc: (p.querySelector("p") || {}).textContent ? p.querySelector("p").textContent.trim() : "",
+        status: badge && badge.classList.contains("dev") ? "开发中" : "已上线",
+        tags: [].map.call(p.querySelectorAll(".project-tags span"), function (x) { return x.textContent.trim(); }).join(", "),
+        links: [].map.call(p.querySelectorAll(".project-links a"), function (a) {
+          return { text: a.textContent.trim(), href: a.getAttribute("href") || "" };
+        })
+      };
+    });
+    renderProjects();
+  }
+
+  function field(labelText, tag, value, pi, key, li) {
+    var wrap = document.createElement("label");
+    wrap.textContent = labelText;
+    var el;
+    if (tag === "select") {
+      el = document.createElement("select");
+      ["开发中", "已上线"].forEach(function (s) {
+        var o = document.createElement("option");
+        o.textContent = s;
+        o.value = s;
+        el.appendChild(o);
+      });
+      el.value = value;
+    } else {
+      el = document.createElement(tag);
+      el.value = value;
+      if (tag === "textarea") el.rows = 3;
+    }
+    el.dataset.p = pi;
+    el.dataset.k = key;
+    if (li !== undefined) el.dataset.l = li;
+    wrap.appendChild(el);
+    return wrap;
+  }
+
+  function renderProjects() {
+    var box = $("#projectsForm");
+    box.innerHTML = "";
+    projectData.forEach(function (p, i) {
+      var card = document.createElement("div");
+      card.className = "pcard";
+      var h = document.createElement("h4");
+      h.textContent = "项目 " + (i + 1) + " · " + p.title;
+      card.appendChild(h);
+      card.appendChild(field("标题", "input", p.title, i, "title"));
+      card.appendChild(field("描述", "textarea", p.desc, i, "desc"));
+      var row = document.createElement("div");
+      row.className = "row";
+      row.appendChild(field("状态", "select", p.status, i, "status"));
+      row.appendChild(field("标签", "input", p.tags, i, "tags"));
+      card.appendChild(row);
+      p.links.forEach(function (l, j) {
+        var lr = document.createElement("div");
+        lr.className = "row";
+        lr.appendChild(field("链接" + (j + 1) + " 文字", "input", l.text, i, "ltext", j));
+        lr.appendChild(field("链接" + (j + 1) + " 地址", "input", l.href, i, "lhref", j));
+        card.appendChild(lr);
+      });
+      box.appendChild(card);
+    });
+  }
+
+  function collectProjects() {
+    var out = JSON.parse(JSON.stringify(projectData));
+    [].forEach.call(document.querySelectorAll("#projectsForm [data-p][data-k]"), function (el) {
+      var i = parseInt(el.dataset.p, 10);
+      var k = el.dataset.k;
+      if (k === "ltext") out[i].links[parseInt(el.dataset.l, 10)].text = el.value;
+      else if (k === "lhref") out[i].links[parseInt(el.dataset.l, 10)].href = el.value;
+      else out[i][k] = el.value;
+    });
+    return out;
+  }
+
+  function setAnchorText(a, text) {
+    var node = null;
+    for (var i = 0; i < a.childNodes.length; i++) {
+      var c = a.childNodes[i];
+      if (c.nodeType === 3 && c.nodeValue.trim()) { node = c; break; }
+    }
+    if (node) node.nodeValue = text + "\n                ";
+    else a.insertBefore(document.createTextNode(text + " "), a.firstChild);
+  }
+
+  function buildHtml() {
+    var name = $("#f-name").value.trim();
+    var nameEl = doc.querySelector(".name");
+    if (nameEl) nameEl.textContent = name;
+
+    var descEl = doc.querySelector(".hero-desc");
+    if (descEl) descEl.innerHTML = $("#f-desc").value;
+
+    var tags = $("#f-tags").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
+    var tagBox = doc.querySelector(".hero .tags");
+    if (tagBox) {
+      tagBox.innerHTML = "";
+      tags.forEach(function (t) {
+        var s = document.createElement("span");
+        s.textContent = t;
+        tagBox.appendChild(s);
+      });
+    }
+
+    var gh = $("#f-github").value.trim();
+    var gt = $("#f-gitee").value.trim();
+    var em = $("#f-email").value.trim();
+    var aGh = doc.querySelector('.socials a[aria-label="GitHub"]');
+    var aGt = doc.querySelector('.socials a[aria-label="Gitee"]');
+    var aEm = doc.querySelector('.socials a[aria-label="邮箱"]');
+    if (aGh) aGh.setAttribute("href", gh);
+    if (aGt) aGt.setAttribute("href", gt);
+    if (aEm) aEm.setAttribute("href", "mailto:" + em);
+
+    [].forEach.call(doc.querySelectorAll(".contact-item"), function (a) {
+      var href = a.getAttribute("href") || "";
+      var strong = a.querySelector("strong");
+      if (href.indexOf("mailto:") === 0) {
+        a.setAttribute("href", "mailto:" + em);
+        if (strong) strong.textContent = em;
+      } else if (href.indexOf("gitee.com") >= 0) {
+        a.setAttribute("href", gt);
+        if (strong) strong.textContent = gt.replace(/^https?:\/\//, "");
+      } else if (href.indexOf("github.com") >= 0) {
+        a.setAttribute("href", gh);
+        if (strong) strong.textContent = gh.replace(/^https?:\/\//, "");
+      }
+    });
+
+    var copy = doc.getElementById("copyEmail");
+    if (copy) copy.dataset.email = em;
+
+    var title = $("#f-title").value.trim();
+    var seo = $("#f-seo").value.trim();
+    doc.title = title;
+    var seoEl = doc.querySelector('meta[name="description"]');
+    if (seoEl) seoEl.setAttribute("content", seo);
+    [].forEach.call(doc.querySelectorAll('meta[property="og:title"], meta[name="twitter:title"]'), function (m) {
+      m.setAttribute("content", title);
+    });
+    [].forEach.call(doc.querySelectorAll('meta[property="og:description"], meta[name="twitter:description"]'), function (m) {
+      m.setAttribute("content", seo);
+    });
+
+    var projs = collectProjects();
+    var nodes = doc.querySelectorAll(".project");
+    projs.forEach(function (p, i) {
+      var n = nodes[i];
+      if (!n) return;
+      var h3 = n.querySelector("h3");
+      if (h3) h3.textContent = p.title;
+      var pd = n.querySelector("p");
+      if (pd) pd.textContent = p.desc;
+      var badge = n.querySelector(".badge");
+      if (badge) {
+        badge.textContent = p.status;
+        badge.className = "badge" + (p.status === "开发中" ? " dev" : "");
+      }
+      var tb = n.querySelector(".project-tags");
+      if (tb) {
+        tb.innerHTML = "";
+        p.tags.split(",").map(function (s) { return s.trim(); }).filter(Boolean).forEach(function (t) {
+          var s = document.createElement("span");
+          s.textContent = t;
+          tb.appendChild(s);
+        });
+      }
+      var anchors = n.querySelectorAll(".project-links a");
+      p.links.forEach(function (l, j) {
+        var a = anchors[j];
+        if (!a) return;
+        a.setAttribute("href", l.href);
+        setAnchorText(a, l.text);
+      });
+    });
+
+    var phrases = $("#f-phrases").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    var html = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+    if (phrases.length) {
+      html = html.replace(/var phrases = \[[\s\S]*?\];/, "var phrases = " + JSON.stringify(phrases) + ";");
+    }
+    return html;
+  }
+
+  function save() {
+    var html;
+    try {
+      html = buildHtml();
+    } catch (e) {
+      toast("生成 HTML 失败：" + e.message, false);
+      return;
+    }
+    fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: html
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || "保存失败");
+        $("#raw").value = html;
+        doc = new DOMParser().parseFromString(html, "text/html");
+        refreshPreview();
+        $("#status").textContent = "已保存";
+        toast("已保存" + (j.backup ? "，备份：" + j.backup.split("/").pop() : ""));
+      })
+      .catch(function (e) { toast(e.message, false); });
+  }
+
+  function saveRaw() {
+    var html = $("#raw").value;
+    fetch("/api/save", {
+      method: "POST",
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: html
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) throw new Error(j.error || "保存失败");
+        doc = new DOMParser().parseFromString(html, "text/html");
+        fill();
+        refreshPreview();
+        toast("源码已保存");
+      })
+      .catch(function (e) { toast(e.message, false); });
+  }
+
+  function publish() {
+    var log = $("#publishLog");
+    log.hidden = false;
+    log.textContent = "正在发布…";
+    fetch("/api/publish", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        log.textContent = j.output || "";
+        if (j.ok) toast(j.changed ? "已推送到 GitHub，约 1 分钟后生效" : "没有可发布的改动");
+        else toast("发布失败，请查看下方日志", false);
+      })
+      .catch(function (e) {
+        log.textContent = e.message;
+        toast("发布失败：" + e.message, false);
+      });
+  }
+
+  // 事件绑定
+  $("#btnRefresh").addEventListener("click", refreshPreview);
+  $("#btnSave").addEventListener("click", save);
+  $("#btnPublish").addEventListener("click", publish);
+  $("#btnRawSave").addEventListener("click", saveRaw);
+  $("#btnRawLoad").addEventListener("click", load);
+
+  [].forEach.call(document.querySelectorAll(".tab"), function (btn) {
+    btn.addEventListener("click", function () {
+      [].forEach.call(document.querySelectorAll(".tab"), function (x) {
+        x.classList.toggle("active", x === btn);
+      });
+      [].forEach.call(document.querySelectorAll(".panel"), function (p) {
+        p.classList.toggle("active", p.id === "panel-" + btn.dataset.tab);
+      });
+    });
+  });
+
+  $("#f-avatar").addEventListener("change", function (e) {
+    var file = e.target.files && e.target.files[0];
+    if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function () {
+      fetch("/api/avatar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ data: reader.result })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) throw new Error(j.error || "上传失败");
+          $("#avatarPreview").src = "/preview/avatar.png?t=" + Date.now();
+          refreshPreview();
+          toast("头像已更新");
+        })
+        .catch(function (err) { toast(err.message, false); });
+    };
+    reader.readAsDataURL(file);
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
+      e.preventDefault();
+      save();
+    }
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>

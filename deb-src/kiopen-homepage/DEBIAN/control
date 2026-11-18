@@ -1,0 +1,12 @@
+Package: kiopen-homepage
+Version: 1.0.0
+Section: web
+Priority: optional
+Architecture: all
+Depends: python3 (>=3.8), git
+Installed-Size: 96
+Maintainer: Kiopen <zpozest@163.com>
+Homepage: https://kiopen.icu/
+Description: Kiopen 个人主页可视化编辑器
+ 启动一个仅监听本机的网页编辑器，用于修改 kiopen.icu 主页的
+ 文案、项目、头像与 SEO 信息，支持实时预览、自动备份与一键发布。
