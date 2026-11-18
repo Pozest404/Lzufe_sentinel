@@ -24,6 +24,7 @@ struct Config {
     branch: String,
     no_browser: bool,
     setup: Arc<Mutex<SetupState>>,
+    io: Arc<Mutex<()>>,
 }
 
 #[derive(Default)]
@@ -92,6 +93,7 @@ fn run() -> Result<(), String> {
         branch: env::var("KIOPEN_BRANCH").unwrap_or_else(|_| "main".into()),
         no_browser,
         setup: Arc::new(Mutex::new(SetupState::default())),
+        io: Arc::new(Mutex::new(())),
     };
 
     match cmd.as_str() {
@@ -122,10 +124,11 @@ fn run() -> Result<(), String> {
                 let bg = cfg.clone();
                 thread::spawn(move || run_setup(&bg));
             } else {
-                match sync_existing(&cfg) {
+                let bg = cfg.clone();
+                thread::spawn(move || match sync_existing(&bg) {
                     Ok(()) => println!("已与远端同步"),
                     Err(e) => println!("自动同步跳过：{e}"),
-                }
+                });
             }
             serve(listener, &cfg)
         }
@@ -315,6 +318,16 @@ fn sync_existing(cfg: &Config) -> Result<(), String> {
     if ahead > 0 {
         return Err("本地有未推送的提交，跳过同步".into());
     }
+    // 同步写入前再确认一次工作区干净，并把 reset 与保存 / 上传串行化
+    let _io = cfg.io.lock().unwrap_or_else(|e| e.into_inner());
+    let (status, code) = git(cfg, &["status", "--porcelain"])
+        .map_err(|e| format!("无法读取 git 状态：{e}"))?;
+    if code != 0 {
+        return Err("不是有效的 git 仓库".into());
+    }
+    if !status.trim().is_empty() {
+        return Err("本地有未提交的修改，跳过同步".into());
+    }
     // 工作区干净且没有本地提交，直接对齐到远端，避开浅克隆的历史边界问题
     match git_timeout(cfg, &["reset", "--hard", &target], 15) {
         Some((_, 0)) => Ok(()),
@@ -380,7 +393,8 @@ fn serve(listener: TcpListener, cfg: &Config) -> Result<(), String> {
     }
     println!("按 Ctrl+C 退出\n");
     if !cfg.no_browser {
-        open_browser(&url);
+        let u = url.clone();
+        thread::spawn(move || open_browser(&u));
     }
     let shared = Arc::new(cfg.clone());
     for stream in listener.incoming() {
@@ -710,6 +724,7 @@ fn save(cfg: &Config, body: &[u8]) -> Result<Vec<u8>, String> {
     if !html.to_ascii_lowercase().contains("<html") {
         return Err("内容不像完整的 HTML".into());
     }
+    let _io = cfg.io.lock().unwrap_or_else(|e| e.into_inner());
     let index = cfg.dir.join("index.html");
     let backup = backup(&index, &cfg.dir, "index")?;
     fs::write(&index, html.as_bytes()).map_err(|e| format!("写入 index.html 失败：{e}"))?;
@@ -730,6 +745,7 @@ fn avatar(cfg: &Config, body: &[u8]) -> Result<Vec<u8>, String> {
     if body.len() > 10 * 1024 * 1024 {
         return Err("图片不能超过 10MB".into());
     }
+    let _io = cfg.io.lock().unwrap_or_else(|e| e.into_inner());
     let ext = if body.starts_with(&[0x89, 0x50, 0x4E, 0x47]) {
         "png"
     } else if body.starts_with(&[0xFF, 0xD8, 0xFF]) {
@@ -738,15 +754,25 @@ fn avatar(cfg: &Config, body: &[u8]) -> Result<Vec<u8>, String> {
         "webp"
     } else if body.starts_with(b"GIF8") {
         "gif"
+    } else if body.len() > 12
+        && &body[4..8] == b"ftyp"
+        && (&body[8..12] == b"avif" || &body[8..12] == b"avis")
+    {
+        "avif"
+    } else if body.len() > 12 && &body[4..8] == b"ftyp" && &body[8..12] == b"heic" {
+        return Err("HEIC 格式暂不支持，请在相册中导出为 JPG / PNG 后再上传".into());
     } else {
-        return Err("仅支持 PNG / JPG / WEBP / GIF".into());
+        return Err("仅支持 PNG / JPG / WEBP / GIF / AVIF".into());
     };
 
     let file = format!("avatar.{ext}");
+    fs::write(cfg.dir.join(&file), body).map_err(|e| format!("写入头像失败：{e}"))?;
     let index = cfg.dir.join("index.html");
     if let Ok(current) = fs::read_to_string(&index) {
         let mut next = current.clone();
-        for old in ["avatar.png", "avatar.jpg", "avatar.jpeg", "avatar.webp", "avatar.gif"] {
+        for old in [
+            "avatar.png", "avatar.jpg", "avatar.jpeg", "avatar.webp", "avatar.gif", "avatar.avif",
+        ] {
             next = next.replace(old, &file);
         }
         if next != current {
@@ -754,7 +780,6 @@ fn avatar(cfg: &Config, body: &[u8]) -> Result<Vec<u8>, String> {
             fs::write(&index, next).map_err(|e| format!("更新 index.html 失败：{e}"))?;
         }
     }
-    fs::write(cfg.dir.join(&file), body).map_err(|e| format!("写入头像失败：{e}"))?;
     Ok(format!(
         r#"{{"ok":true,"file":"{}","bytes":{}}}"#,
         file,
@@ -825,6 +850,7 @@ fn restore(cfg: &Config, raw: &str) -> Result<Vec<u8>, String> {
     if !html.to_ascii_lowercase().contains("<html") {
         return Err("备份内容不完整".into());
     }
+    let _io = cfg.io.lock().unwrap_or_else(|e| e.into_inner());
     let index = cfg.dir.join("index.html");
     let saved = backup(&index, &cfg.dir, "index")?;
     fs::write(&index, data).map_err(|e| format!("写入 index.html 失败：{e}"))?;
@@ -842,6 +868,7 @@ fn restore(cfg: &Config, raw: &str) -> Result<Vec<u8>, String> {
 }
 
 fn publish(cfg: &Config) -> Result<Vec<u8>, String> {
+    let _io = cfg.io.lock().unwrap_or_else(|e| e.into_inner());
     let (add_out, add_code) = git(cfg, &["add", "-A"])?;
     if add_code != 0 {
         return Err(format!("git add 失败：{add_out}"));
