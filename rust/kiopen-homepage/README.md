@@ -8,9 +8,9 @@
 
 ## 下载
 
-- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.0.0)
-- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.0.0_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.0.0/kiopen-homepage_2.0.0_amd64.deb)
-- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.0.0/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
+- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.0)
+- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.0_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.0/kiopen-homepage_2.1.0_amd64.deb)
+- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.0/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
 
 ## 安装
 
@@ -40,13 +40,19 @@ kiopen-homepage
 | 分区 | 内容 |
 | --- | --- |
 | 常用 | 姓名、简介、打字机文案、技术标签、GitHub / Gitee / 邮箱 |
-| 项目 | 增删项目、描述、状态徽章、标签、任意数量链接 |
+| 项目 | 增删项目、拖动或 ↑↓ 排序、描述、状态徽章、标签、任意数量链接 |
 | 头像 | 点击或拖拽上传，自动识别 PNG / JPG / WEBP / GIF 并替换引用 |
 | SEO | 页面标题、描述，自动写入 OG / Twitter Card |
+| 历史 | 浏览、预览、恢复每一次自动备份 |
 | 源码 | 直接编辑完整 HTML |
 
-- 右侧实时预览，支持桌面 / 手机两种视图
-- 每次保存自动备份到 `.backups/`（已加入 git 忽略）
+- 右侧实时预览，支持桌面 / 手机两种视图，可一键隐藏
+- 每次保存自动备份到 `.backups/`（已加入 git 忽略），可随时回滚
+- 草稿自动保存在浏览器，刷新或误关页面后可恢复
+- 命令面板（`Ctrl + K`）快速执行保存、发布、切页、换主题等操作
+- 多级撤销 / 重做（`Ctrl + Z` / `Ctrl + Shift + Z`）
+- 深色 / 浅色主题，跟随系统或手动切换
+- **自动发布**：开启后每次保存成功会自动提交并推送
 - `Ctrl + S` 保存，`Ctrl + Enter` 发布
 - 服务只监听 `127.0.0.1`，并校验 Origin，局域网和外网都无法访问
 
@@ -96,7 +102,7 @@ sudo apt install musl-tools
 cargo build --release --target x86_64-unknown-linux-musl
 ```
 
-产物：`target/x86_64-unknown-linux-musl/release/kiopen-homepage`（静态链接，约 580KB）。
+产物：`target/x86_64-unknown-linux-musl/release/kiopen-homepage`（静态链接，约 630KB）。
 
 打包 deb：
 

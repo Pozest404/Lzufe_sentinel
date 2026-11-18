@@ -326,6 +326,18 @@ fn handle(mut s: TcpStream, cfg: &Config) -> std::io::Result<()> {
             Ok(b) => respond(&mut s, 200, CT_JSON, &b),
             Err(e) => err(&mut s, 500, &e),
         },
+        ("GET", "/api/backups") => match list_backups(cfg) {
+            Ok(b) => respond(&mut s, 200, CT_JSON, &b),
+            Err(e) => err(&mut s, 500, &e),
+        },
+        ("GET", p) if p.starts_with("/api/backup/") => {
+            serve_backup(cfg, &p["/api/backup/".len()..], &mut s)
+        }
+        ("POST", p) if p.starts_with("/api/restore/") => match restore(cfg, &p["/api/restore/".len()..])
+        {
+            Ok(b) => respond(&mut s, 200, CT_JSON, &b),
+            Err(e) => err(&mut s, 400, &e),
+        },
         ("GET", "/preview") => redirect(&mut s, "/preview/"),
         ("GET", p) if p.starts_with("/preview/") => serve_preview(cfg, p, &mut s),
         _ => respond(&mut s, 404, CT_TEXT, "404 Not Found".as_bytes()),
@@ -530,6 +542,84 @@ fn avatar(cfg: &Config, body: &[u8]) -> Result<Vec<u8>, String> {
         r#"{{"ok":true,"file":"{}","bytes":{}}}"#,
         file,
         body.len()
+    )
+    .into_bytes())
+}
+
+fn valid_backup_name(name: &str) -> bool {
+    name.starts_with("index-")
+        && name.ends_with(".html")
+        && name.len() > 11
+        && name[6..name.len() - 5]
+            .chars()
+            .all(|c| c.is_ascii_digit())
+}
+
+fn list_backups(cfg: &Config) -> Result<Vec<u8>, String> {
+    let bdir = cfg.dir.join(".backups");
+    let mut items: Vec<(String, u64, u128)> = Vec::new();
+    if let Ok(rd) = fs::read_dir(&bdir) {
+        for e in rd.flatten() {
+            let name = e.file_name().to_string_lossy().to_string();
+            if !valid_backup_name(&name) {
+                continue;
+            }
+            let meta = match e.metadata() {
+                Ok(m) => m,
+                Err(_) => continue,
+            };
+            let time = meta
+                .modified()
+                .ok()
+                .and_then(|t| t.duration_since(UNIX_EPOCH).ok())
+                .map(|d| d.as_millis())
+                .unwrap_or(0);
+            items.push((name, meta.len(), time));
+        }
+    }
+    items.sort_by(|a, b| b.2.cmp(&a.2));
+    let list = items
+        .iter()
+        .map(|(n, b, t)| format!(r#"{{"name":"{}","bytes":{},"time":{}}}"#, js(n), b, t))
+        .collect::<Vec<_>>()
+        .join(",");
+    Ok(format!(r#"{{"ok":true,"items":[{list}]}}"#).into_bytes())
+}
+
+fn serve_backup(cfg: &Config, raw: &str, s: &mut TcpStream) -> std::io::Result<()> {
+    let name = percent_decode(raw);
+    if !valid_backup_name(&name) {
+        return respond(s, 404, CT_TEXT, "备份不存在".as_bytes());
+    }
+    match fs::read(cfg.dir.join(".backups").join(&name)) {
+        Ok(b) => respond(s, 200, CT_HTML, &b),
+        Err(_) => respond(s, 404, CT_TEXT, "备份不存在".as_bytes()),
+    }
+}
+
+fn restore(cfg: &Config, raw: &str) -> Result<Vec<u8>, String> {
+    let name = percent_decode(raw);
+    if !valid_backup_name(&name) {
+        return Err("备份名称不合法".into());
+    }
+    let src = cfg.dir.join(".backups").join(&name);
+    let data = fs::read(&src).map_err(|_| "备份不存在".to_string())?;
+    let html = std::str::from_utf8(&data).map_err(|_| "备份不是 UTF-8")?;
+    if !html.to_ascii_lowercase().contains("<html") {
+        return Err("备份内容不完整".into());
+    }
+    let index = cfg.dir.join("index.html");
+    let saved = backup(&index, &cfg.dir, "index")?;
+    fs::write(&index, data).map_err(|e| format!("写入 index.html 失败：{e}"))?;
+    let saved_s = if saved.as_os_str().is_empty() {
+        String::new()
+    } else {
+        saved.to_string_lossy().to_string()
+    };
+    Ok(format!(
+        r#"{{"ok":true,"restored":"{}","backup":"{}"}}"#,
+        js(&name),
+        js(&saved_s)
     )
     .into_bytes())
 }

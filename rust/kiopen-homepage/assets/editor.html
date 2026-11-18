@@ -21,10 +21,27 @@
     --red: #f87171;
     --radius: 14px;
   }
+  [data-theme="light"] {
+    --bg: #eef2fa;
+    --panel: #ffffff;
+    --panel2: #f6f8ff;
+    --line: #dde4f2;
+    --line2: #b9c5de;
+    --text: #101a2e;
+    --muted: #5b6a85;
+    --accent: #6d4dff;
+    --accent2: #0a93ad;
+    --accent3: #d94f95;
+    --green: #0f9d68;
+    --amber: #b8790a;
+    --red: #d34545;
+  }
   * { box-sizing: border-box; }
   html, body { height: 100%; }
   body {
     margin: 0;
+    display: flex;
+    flex-direction: column;
     background:
       radial-gradient(1100px 700px at 8% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
       radial-gradient(900px 600px at 110% 8%, rgba(34, 211, 238, 0.12), transparent 55%),
@@ -33,6 +50,35 @@
     font-family: system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     font-size: 14px;
     overflow: hidden;
+  }
+  [data-theme="light"] body {
+    background:
+      radial-gradient(1000px 640px at 6% -10%, rgba(124, 92, 255, 0.12), transparent 62%),
+      radial-gradient(820px 560px at 108% 6%, rgba(34, 211, 238, 0.14), transparent 58%),
+      var(--bg);
+  }
+  :focus-visible { outline: 2px solid var(--accent2); outline-offset: 2px; }
+  [data-theme="light"] .topbar { background: rgba(255, 255, 255, 0.82); }
+  [data-theme="light"] .sidenav { background: rgba(255, 255, 255, 0.5); }
+  [data-theme="light"] .preview { background: rgba(255, 255, 255, 0.55); }
+  [data-theme="light"] input,
+  [data-theme="light"] textarea,
+  [data-theme="light"] select,
+  [data-theme="light"] .pcard,
+  [data-theme="light"] .dropzone,
+  [data-theme="light"] .mini,
+  [data-theme="light"] .icon-btn,
+  [data-theme="light"] .icon-ghost,
+  [data-theme="light"] .btn,
+  [data-theme="light"] .switch { background: #fff; }
+  [data-theme="light"] .pcard-head { background: rgba(109, 77, 255, 0.05); }
+  [data-theme="light"] kbd { background: #eef2fb; color: #46536b; }
+  [data-theme="light"] .toast { background: #fff; }
+  [data-theme="light"] .modal-card { background: #fff; }
+  [data-theme="light"] .modal pre { color: #33415c; }
+  [data-theme="light"] .preview-body { background-image: radial-gradient(rgba(16, 26, 46, 0.08) 1px, transparent 1px); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
   }
   ::-webkit-scrollbar { width: 10px; height: 10px; }
   ::-webkit-scrollbar-thumb { background: #1b2740; border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
@@ -85,9 +131,12 @@
   .workspace {
     display: grid;
     grid-template-columns: 196px minmax(0, 1fr) minmax(360px, 42%);
-    height: calc(100vh - 60px);
+    flex: 1 1 auto;
     min-height: 0;
+    height: auto;
   }
+  .workspace.hide-preview { grid-template-columns: 196px minmax(0, 1fr); }
+  .workspace.hide-preview .preview { display: none; }
 
   /* ===== 侧栏 ===== */
   .sidenav {
@@ -251,12 +300,94 @@
   .modal-head .grow { flex: 1; }
   .modal pre { margin: 0; padding: 16px; overflow: auto; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; line-height: 1.65; color: #b9c6dd; white-space: pre-wrap; }
 
+  /* ===== 顶栏扩展 ===== */
+  .icon-ghost {
+    width: 34px; height: 34px; flex: none; display: grid; place-items: center;
+    border-radius: 9px; border: 1px solid var(--line); background: var(--panel);
+    color: var(--muted); font: inherit; font-size: 15px; cursor: pointer;
+    transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+  }
+  .icon-ghost:hover { color: var(--text); border-color: var(--line2); background: var(--panel2); }
+  .switch {
+    display: inline-flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px;
+    border-radius: 999px; border: 1px solid var(--line); background: var(--panel);
+    color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+    transition: color 0.16s ease, border-color 0.16s ease;
+  }
+  .switch:hover { color: var(--text); border-color: var(--line2); }
+  .switch .track { width: 30px; height: 17px; flex: none; border-radius: 999px; background: var(--line2); position: relative; transition: background 0.2s ease; }
+  .switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%; background: #fff; transition: left 0.2s ease; }
+  .switch[aria-pressed="true"] { color: var(--text); border-color: rgba(124, 92, 255, 0.5); }
+  .switch[aria-pressed="true"] .track { background: linear-gradient(120deg, var(--accent), var(--accent2)); }
+  .switch[aria-pressed="true"] .track::after { left: 15px; }
+  .state { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+  .state i { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
+  .state.dirty i { background: var(--amber); }
+  .state.busy i { background: var(--accent2); animation: blink 1s infinite; }
+  .state.err i { background: var(--red); }
+
+  /* ===== 草稿提示条 ===== */
+  .banner {
+    display: none; flex: none; align-items: center; gap: 10px; padding: 9px 18px;
+    font-size: 12px; color: var(--text);
+    background: linear-gradient(90deg, rgba(124, 92, 255, 0.2), rgba(34, 211, 238, 0.08));
+    border-bottom: 1px solid var(--line);
+  }
+  .banner.show { display: flex; }
+  .banner .grow { flex: 1; }
+
+  /* ===== 命令面板 ===== */
+  .palette {
+    position: fixed; inset: 0; z-index: 150; display: none;
+    align-items: flex-start; justify-content: center; padding-top: 12vh;
+    background: rgba(3, 6, 12, 0.62); backdrop-filter: blur(6px);
+  }
+  .palette.show { display: flex; }
+  .palette-box {
+    width: min(560px, calc(100vw - 28px)); overflow: hidden;
+    background: var(--panel); border: 1px solid var(--line2); border-radius: 14px;
+    box-shadow: 0 30px 80px -20px #000;
+  }
+  .palette-input { width: 100%; border: none; border-bottom: 1px solid var(--line); border-radius: 0; padding: 15px 16px; background: transparent; font-size: 14px; }
+  .palette-input:focus { box-shadow: none; }
+  .palette-list { max-height: 46vh; overflow: auto; padding: 6px; }
+  .cmd { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+  .cmd.active { background: rgba(124, 92, 255, 0.16); color: var(--text); }
+  .cmd .grow { flex: 1; }
+  .cmd .k { font-size: 10.5px; color: var(--muted); }
+  .palette-empty { padding: 22px; text-align: center; color: var(--muted); font-size: 12px; }
+
+  /* ===== 备份历史 ===== */
+  .bk-item { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border: 1px solid var(--line); border-radius: 10px; background: #080d19; margin-bottom: 8px; }
+  [data-theme="light"] .bk-item { background: #fff; }
+  .bk-info { flex: 1; min-width: 0; }
+  .bk-name { font-size: 12px; font-family: ui-monospace, Menlo, Consolas, monospace; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bk-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .bk-empty { padding: 24px; text-align: center; color: var(--muted); font-size: 12.5px; line-height: 1.8; }
+
+  /* ===== 项目拖拽 ===== */
+  .p-grip { cursor: grab; color: var(--muted); font-size: 14px; padding: 0 2px; user-select: none; }
+  .p-grip:active { cursor: grabbing; }
+  .pcard.dragging { opacity: 0.4; }
+  .pcard.drop-target { border-color: var(--accent2); box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.22); }
+
+  .toast { padding-right: 30px; }
+  .toast .x { position: absolute; right: 7px; top: 5px; border: none; background: none; color: var(--muted); font-size: 12px; cursor: pointer; }
+  .toast .x:hover { color: var(--text); }
+  .toast { position: relative; }
+
   /* ===== 响应式 ===== */
   @media (max-width: 1100px) {
     .workspace { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) 46vh; }
+    .workspace.hide-preview { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
     .sidenav { flex-direction: row; overflow-x: auto; border-right: none; border-bottom: 1px solid var(--line); padding: 8px; }
     .nav-foot { display: none; }
     .preview { border-left: none; border-top: 1px solid var(--line); }
+  }
+  @media (max-width: 900px) {
+    .switch span:last-child { display: none; }
+    .state { display: none; }
+    #siteLink { display: none; }
   }
   @media (max-width: 720px) {
     .topbar { padding: 0 12px; gap: 8px; }
@@ -281,9 +412,23 @@
     </div>
     <div class="grow"></div>
     <span class="pill" id="connPill"><i></i><span id="connText">已连接</span></span>
+    <button class="switch" id="autoPublishBtn" type="button" aria-pressed="false" title="保存成功后自动提交并推送（Ctrl+K 可切换）">
+      <span class="track" aria-hidden="true"></span><span>自动发布</span>
+    </button>
+    <span class="state" id="topState"><i aria-hidden="true"></i><span id="topStateText">已加载</span></span>
+    <button class="icon-ghost" id="previewToggle" type="button" title="显示 / 隐藏预览区" aria-label="显示或隐藏预览区">▥</button>
+    <button class="icon-ghost" id="themeBtn" type="button" title="切换深色 / 浅色主题">◐</button>
+    <button class="icon-ghost" id="helpBtn" type="button" title="快捷键与帮助" aria-label="快捷键与帮助">?</button>
     <a class="btn" id="siteLink" href="https://kiopen.icu/" target="_blank" rel="noopener">打开站点</a>
     <button class="btn primary" id="publishBtn" type="button">发布</button>
   </header>
+
+  <div class="banner" id="draftBanner" role="status">
+    <span>发现未保存的本地草稿（<span id="draftTime">刚刚</span>），要恢复吗？</span>
+    <span class="grow"></span>
+    <button class="mini" id="draftRestore" type="button">恢复草稿</button>
+    <button class="mini" id="draftDiscard" type="button">丢弃</button>
+  </div>
 
   <div class="workspace">
     <nav class="sidenav" aria-label="编辑分区">
@@ -303,13 +448,19 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
         SEO
       </button>
+      <button class="nav-item" type="button" data-tab="history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
+        历史
+      </button>
       <button class="nav-item" type="button" data-tab="raw">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m8 6-5 6 5 6M16 6l5 6-5 6"/></svg>
         源码
       </button>
       <div class="nav-foot">
+        <div><kbd>Ctrl</kbd> + <kbd>K</kbd> 命令面板</div>
         <div><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存</div>
         <div><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 发布</div>
+        <div style="margin-top:6px" id="versionText">v2.1.0</div>
       </div>
     </nav>
 
@@ -391,6 +542,15 @@
           </div>
         </section>
 
+        <section class="pane" id="pane-history">
+          <div class="card">
+            <h2>本地备份</h2>
+            <p class="hint">每次保存、恢复都会自动备份上一版 index.html，保存在仓库的 .backups/ 目录（不会提交到 Git）。可以随时预览或恢复。</p>
+            <div id="backupList"><div class="bk-empty">加载中…</div></div>
+            <button class="btn" id="refreshBackups" type="button">刷新列表</button>
+          </div>
+        </section>
+
         <section class="pane" id="pane-raw">
           <div class="card">
             <h2>完整源码</h2>
@@ -415,6 +575,7 @@
         <button class="mini" id="deviceBtn" type="button">手机</button>
         <button class="mini" id="refreshBtn" type="button">刷新</button>
         <a class="mini" id="openPreview" href="/preview/" target="_blank" rel="noopener">新窗口</a>
+        <button class="mini" id="hidePreviewBtn" type="button" title="隐藏预览区">隐藏</button>
       </div>
       <div class="preview-body" id="previewBody">
         <iframe id="previewFrame" title="主页预览"></iframe>
@@ -422,11 +583,18 @@
     </aside>
   </div>
 
-  <div class="toasts" id="toasts"></div>
+  <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+  <div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="命令面板">
+    <div class="palette-box">
+      <input class="palette-input" id="paletteInput" type="text" placeholder="输入命令，例如：保存 / 发布 / 主题 / 历史" autocomplete="off" aria-label="搜索命令" />
+      <div class="palette-list" id="paletteList"></div>
+    </div>
+  </div>
 
   <div class="modal" id="modal">
     <div class="modal-card">
-      <div class="modal-head"><span id="modalTitle">提示</span><span class="grow"></span><button class="icon-btn" id="modalClose" type="button">✕</button></div>
+      <div class="modal-head"><span id="modalTitle">提示</span><span class="grow"></span><button class="mini" id="modalCopy" type="button">复制</button><button class="icon-btn" id="modalClose" type="button" aria-label="关闭">✕</button></div>
       <pre id="modalBody"></pre>
     </div>
   </div>
@@ -438,9 +606,27 @@
   var ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"></path></svg>';
   var state = {
     html: '', f: null, projects: [], avatarFile: 'avatar.png',
-    tab: 'basic', dirty: false, rawDirty: false, collapsed: new Set()
+    tab: 'basic', dirty: false, rawDirty: false, collapsed: new Set(),
+    theme: 'dark', autoPublish: false, dragFrom: -1,
+    history: [], hIndex: -1, hTimer: null
   };
   var previewTimer = null;
+  var draftTimer = null;
+  var draftDir = 'default';
+  var pendingDraft = null;
+  var paletteItems = [];
+  var paletteIndex = 0;
+
+  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function fmtTime(ms) {
+    if (!ms) return '未知时间';
+    var d = new Date(Number(ms));
+    function p(n) { return n < 10 ? '0' + n : '' + n; }
+    return (d.getMonth() + 1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+  }
 
   function $(sel) { return document.querySelector(sel); }
   function esc(s) {
@@ -452,13 +638,22 @@
   function toast(msg, kind, ms) {
     var el = document.createElement('div');
     el.className = 'toast' + (kind ? ' ' + kind : '');
-    el.textContent = msg;
+    var span = document.createElement('span');
+    span.textContent = msg;
+    el.appendChild(span);
+    var x = document.createElement('button');
+    x.type = 'button'; x.className = 'x'; x.textContent = '✕'; x.setAttribute('aria-label', '关闭提示');
+    x.onclick = function () { el.remove(); };
+    el.appendChild(x);
     $('#toasts').appendChild(el);
     setTimeout(function () { el.remove(); }, ms || 3600);
   }
   function setStatus(text, kind) {
+    var dot = (kind === 'ok' || !kind) ? '' : ' ' + kind;
     $('#statusText').textContent = text;
-    $('#statusDot').className = 'dot' + (kind ? ' ' + kind : '');
+    $('#statusDot').className = 'dot' + dot;
+    $('#topStateText').textContent = text;
+    $('#topState').className = 'state' + (kind === 'ok' || !kind ? '' : ' ' + kind);
   }
   function setConn(ok) {
     $('#connPill').classList.toggle('off', !ok);
@@ -529,6 +724,16 @@
     state.projects = p.projects;
     state.avatarFile = p.avatar || 'avatar.png';
     state.collapsed.clear();
+    syncFields();
+    $('#avatarImg').src = '/preview/' + encodeURIComponent(state.avatarFile) + '?t=' + Date.now();
+    $('#avatarName').textContent = state.avatarFile;
+    renderProjects();
+    $('#rawHtml').value = '';
+  }
+
+  function syncFields() {
+    var p = state.f;
+    if (!p) return;
     $('#fName').value = p.name;
     $('#fDesc').value = p.desc;
     $('#fPhrases').value = p.phrases.join('\n');
@@ -538,11 +743,7 @@
     $('#fEmail').value = p.email;
     $('#seoTitle').value = p.seoTitle;
     $('#seoDesc').value = p.seoDesc;
-    $('#avatarImg').src = '/preview/' + encodeURIComponent(state.avatarFile) + '?t=' + Date.now();
-    $('#avatarName').textContent = state.avatarFile;
-    renderProjects();
     updateCounters();
-    $('#rawHtml').value = '';
   }
 
   function updateCounters() {
@@ -562,8 +763,11 @@
       }).join('');
       return '<div class="pcard' + (collapsed ? ' collapsed' : '') + '" data-i="' + i + '">' +
         '<div class="pcard-head">' +
+          '<span class="p-grip" draggable="true" title="拖动调整顺序" aria-label="拖动排序">⠿</span>' +
           '<input class="p-icon" data-f="icon" value="' + attr(p.icon) + '" maxlength="3" aria-label="项目图标" />' +
           '<input class="p-title" data-f="title" value="' + attr(p.title) + '" placeholder="项目名称" aria-label="项目名称" />' +
+          '<button type="button" class="icon-btn p-up" title="上移" aria-label="上移">↑</button>' +
+          '<button type="button" class="icon-btn p-down" title="下移" aria-label="下移">↓</button>' +
           '<button type="button" class="icon-btn p-collapse" title="展开 / 收起">▾</button>' +
           '<button type="button" class="icon-btn danger p-del" title="删除项目">✕</button>' +
         '</div>' +
@@ -664,8 +868,7 @@
     var html;
     try { html = sourceHtml(); } catch (e) { return; }
     if (!html) return;
-    html = html.replace('<head>', '<head><base href="/preview/">');
-    $('#previewFrame').srcdoc = html;
+    previewHtml(html);
   }
 
   function schedulePreview() {
@@ -673,10 +876,228 @@
     previewTimer = setTimeout(function () { updatePreview(); }, 350);
   }
 
-  function changed() {
+  function changed(silent) {
     state.dirty = true;
     setStatus('未保存', 'dirty');
     schedulePreview();
+    if (!silent) pushHistory();
+    saveDraft();
+  }
+
+  /* ===== 撤销 / 重做 ===== */
+  function snapshot() { return { f: clone(state.f), projects: clone(state.projects) }; }
+  function resetHistory() { state.history = [snapshot()]; state.hIndex = 0; }
+  function pushHistory() {
+    if (!state.f) return;
+    clearTimeout(state.hTimer);
+    state.hTimer = setTimeout(function () {
+      var s = snapshot();
+      var cur = state.history[state.hIndex];
+      if (cur && JSON.stringify(cur) === JSON.stringify(s)) return;
+      state.history = state.history.slice(0, state.hIndex + 1);
+      state.history.push(s);
+      if (state.history.length > 60) state.history.shift();
+      state.hIndex = state.history.length - 1;
+    }, 450);
+  }
+  function applySnapshot(s) {
+    state.f = clone(s.f);
+    state.projects = clone(s.projects);
+    syncFields();
+    renderProjects();
+    changed(true);
+  }
+  function undo() {
+    if (state.hIndex <= 0) { toast('没有可撤销的修改', 'err'); return; }
+    state.hIndex--;
+    applySnapshot(state.history[state.hIndex]);
+    toast('已撤销');
+  }
+  function redo() {
+    if (state.hIndex >= state.history.length - 1) { toast('没有可重做的修改', 'err'); return; }
+    state.hIndex++;
+    applySnapshot(state.history[state.hIndex]);
+    toast('已重做');
+  }
+
+  /* ===== 草稿自动保存 ===== */
+  function draftKey() { return 'kiopen-draft:' + draftDir; }
+  function saveDraft() {
+    if (!state.f) return;
+    clearTimeout(draftTimer);
+    draftTimer = setTimeout(function () {
+      var html;
+      try { html = sourceHtml(); } catch (e) { return; }
+      if (!html) return;
+      lsSet(draftKey(), JSON.stringify({ ts: Date.now(), html: html, tab: state.tab }));
+    }, 900);
+  }
+  function clearDraft() {
+    lsDel(draftKey());
+    pendingDraft = null;
+    $('#draftBanner').classList.remove('show');
+  }
+  function checkDraft() {
+    var raw = lsGet(draftKey());
+    if (!raw) return;
+    try {
+      var d = JSON.parse(raw);
+      if (!d || !d.html || d.html === state.html) { lsDel(draftKey()); return; }
+      pendingDraft = d;
+      $('#draftTime').textContent = fmtTime(d.ts);
+      $('#draftBanner').classList.add('show');
+    } catch (e) { lsDel(draftKey()); }
+  }
+  function restoreDraft() {
+    if (!pendingDraft) return;
+    state.html = pendingDraft.html;
+    fill(parseSite(state.html));
+    state.dirty = true;
+    state.rawDirty = false;
+    pendingDraft = null;
+    $('#draftBanner').classList.remove('show');
+    resetHistory();
+    setStatus('已恢复草稿', 'dirty');
+    updatePreview(true);
+    toast('草稿已恢复，记得保存', 'ok');
+  }
+
+  /* ===== 主题 / 自动发布 / 预览开关 ===== */
+  function applyTheme(t) {
+    state.theme = t === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', state.theme);
+    $('#themeBtn').textContent = state.theme === 'light' ? '☾' : '◐';
+    $('#themeBtn').title = state.theme === 'light' ? '切换到深色主题' : '切换到浅色主题';
+    lsSet('kiopen-theme', state.theme);
+  }
+  function toggleTheme() { applyTheme(state.theme === 'light' ? 'dark' : 'light'); }
+  function setAutoPublish(on, silent) {
+    state.autoPublish = !!on;
+    $('#autoPublishBtn').setAttribute('aria-pressed', state.autoPublish ? 'true' : 'false');
+    lsSet('kiopen-autopublish', state.autoPublish ? '1' : '0');
+    if (!silent) toast(state.autoPublish ? '已开启：保存后自动发布上线' : '已关闭自动发布', 'ok');
+  }
+  function togglePreview() {
+    var hidden = $('.workspace').classList.toggle('hide-preview');
+    toast(hidden ? '已隐藏预览区' : '已显示预览区');
+  }
+
+  /* ===== 命令面板 ===== */
+  function buildCommands() {
+    return [
+      { name: '保存', key: 'Ctrl S', run: function () { save(); } },
+      { name: '发布上线', key: 'Ctrl Enter', run: function () { publish(); } },
+      { name: '撤销上一步', key: 'Ctrl Z', run: undo },
+      { name: '重做', key: 'Ctrl Shift Z', run: redo },
+      { name: '切换到：常用', run: function () { switchTab('basic'); } },
+      { name: '切换到：项目', run: function () { switchTab('projects'); } },
+      { name: '切换到：头像', run: function () { switchTab('avatar'); } },
+      { name: '切换到：SEO', run: function () { switchTab('seo'); } },
+      { name: '切换到：历史备份', run: function () { switchTab('history'); } },
+      { name: '切换到：源码', run: function () { switchTab('raw'); } },
+      { name: state.theme === 'light' ? '切换到深色主题' : '切换到浅色主题', run: toggleTheme },
+      { name: '刷新预览', run: function () { updatePreview(true); } },
+      { name: '显示 / 隐藏预览区', run: togglePreview },
+      { name: '开启 / 关闭自动发布', run: function () { setAutoPublish(!state.autoPublish); } },
+      { name: '打开线上站点', run: function () { window.open($('#siteLink').href, '_blank'); } },
+      { name: '重新加载主页数据', run: function () { load(); } },
+      { name: '查看快捷键帮助', key: '?', run: showHelp },
+      { name: '新建项目', run: function () { switchTab('projects'); addProject(); } }
+    ];
+  }
+  function openPalette() {
+    $('#palette').classList.add('show');
+    $('#paletteInput').value = '';
+    paletteIndex = 0;
+    renderPalette('');
+    setTimeout(function () { $('#paletteInput').focus(); }, 0);
+  }
+  function closePalette() { $('#palette').classList.remove('show'); }
+  function renderPalette(q) {
+    var all = buildCommands();
+    var query = String(q || '').trim().toLowerCase();
+    paletteItems = query ? all.filter(function (c) { return c.name.toLowerCase().indexOf(query) >= 0; }) : all;
+    if (!paletteItems.length) {
+      $('#paletteList').innerHTML = '<div class="palette-empty">没有匹配的命令</div>';
+      return;
+    }
+    if (paletteIndex >= paletteItems.length) paletteIndex = 0;
+    $('#paletteList').innerHTML = paletteItems.map(function (c, i) {
+      return '<div class="cmd' + (i === paletteIndex ? ' active' : '') + '" data-i="' + i + '">' +
+        '<span>' + esc(c.name) + '</span><span class="grow"></span>' +
+        (c.key ? '<span class="k">' + esc(c.key) + '</span>' : '') + '</div>';
+    }).join('');
+  }
+  function runPalette(i) {
+    var c = paletteItems[i];
+    if (!c) return;
+    closePalette();
+    c.run();
+  }
+
+  function showHelp() {
+    showModal('快捷键与技巧', [
+      'Ctrl + K          打开命令面板',
+      'Ctrl + S          保存到本地（自动备份）',
+      'Ctrl + Enter      保存并发布上线',
+      'Ctrl + Z          撤销表单修改（输入框内为系统撤销）',
+      'Ctrl + Shift + Z  重做',
+      'Esc               关闭弹窗 / 命令面板',
+      '',
+      '· 编辑时草稿会自动保存在浏览器里，刷新或误关页面可恢复',
+      '· 「历史」页可预览或恢复任意一次自动备份',
+      '· 开启「自动发布」后，每次保存成功会自动提交并推送',
+      '· 项目卡片左侧 ⠿ 手柄可拖动排序，也可用 ↑ ↓ 按钮',
+      '· 预览区支持桌面 / 手机宽度，可隐藏以扩大编辑区'
+    ].join('\n'));
+  }
+
+  /* ===== 历史备份 ===== */
+  function previewHtml(html) {
+    if (!html) return;
+    $('#previewFrame').srcdoc = html.replace('<head>', '<head><base href="/preview/">');
+  }
+  async function loadBackups() {
+    var box = $('#backupList');
+    box.innerHTML = '<div class="bk-empty">加载中…</div>';
+    try {
+      var r = await fetch('/api/backups', { cache: 'no-store' });
+      var j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      if (!j.items.length) {
+        box.innerHTML = '<div class="bk-empty">还没有备份，保存一次就会生成。</div>';
+        return;
+      }
+      box.innerHTML = j.items.map(function (it) {
+        return '<div class="bk-item" data-name="' + attr(it.name) + '">' +
+          '<div class="bk-info"><div class="bk-name">' + esc(it.name) + '</div>' +
+          '<div class="bk-meta">' + fmtTime(it.time) + ' · ' + (it.bytes / 1024).toFixed(1) + ' KB</div></div>' +
+          '<button class="mini bk-view" type="button">预览</button>' +
+          '<button class="mini bk-restore" type="button">恢复</button>' +
+          '</div>';
+      }).join('');
+    } catch (e) {
+      box.innerHTML = '<div class="bk-empty">加载失败：' + esc(String(e.message || e)) + '</div>';
+    }
+  }
+  async function viewBackup(name) {
+    try {
+      var r = await fetch('/api/backup/' + encodeURIComponent(name), { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      previewHtml(await r.text());
+      toast('正在预览备份 ' + name, 'ok');
+    } catch (e) { toast('预览失败：' + String(e.message || e), 'err'); }
+  }
+  async function restoreBackup(name) {
+    if (!confirm('恢复 ' + name + '？当前版本会先自动备份。')) return;
+    try {
+      var r = await fetch('/api/restore/' + encodeURIComponent(name), { method: 'POST' });
+      var j = await r.json();
+      if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
+      await load();
+      await loadBackups();
+      toast('已恢复到 ' + name, 'ok');
+    } catch (e) { toast('恢复失败：' + String(e.message || e), 'err', 6000); }
   }
 
   function switchTab(name) {
@@ -688,7 +1109,9 @@
     }
     state.tab = name;
     Array.prototype.slice.call(document.querySelectorAll('.nav-item')).forEach(function (b) {
-      b.classList.toggle('active', b.getAttribute('data-tab') === name);
+      var on = b.getAttribute('data-tab') === name;
+      b.classList.toggle('active', on);
+      if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
     Array.prototype.slice.call(document.querySelectorAll('.pane')).forEach(function (pane) {
       pane.classList.toggle('active', pane.id === 'pane-' + name);
@@ -699,6 +1122,7 @@
       updateRawCount();
     }
     if (name === 'seo') updateCounters();
+    if (name === 'history') loadBackups();
   }
 
   function updateRawCount() {
@@ -718,11 +1142,14 @@
       state.html = html;
       fill(parseSite(html));
       if (info.site_url) { $('#siteLink').href = info.site_url; }
-      if (info.dir) { $('#dirPath').textContent = info.dir; }
+      if (info.dir) { $('#dirPath').textContent = info.dir; draftDir = info.dir; }
+      if (info.version) { $('#versionText').textContent = 'v' + info.version; }
       setConn(true);
       setStatus('已加载', 'ok');
       state.dirty = false;
+      resetHistory();
       updatePreview(true);
+      checkDraft();
     } catch (e) {
       setConn(false);
       setStatus('加载失败', 'err');
@@ -730,11 +1157,11 @@
     }
   }
 
-  async function save() {
+  async function doSave() {
     var html;
-    try { html = sourceHtml(); } catch (e) { toast(String(e.message || e), 'err'); return; }
-    if (!state.f.name.trim()) { toast('姓名不能为空', 'err'); return; }
-    if (!/<html/i.test(html)) { toast('内容不完整，缺少 <html>', 'err'); return; }
+    try { html = sourceHtml(); } catch (e) { toast(String(e.message || e), 'err'); return false; }
+    if (!state.f.name.trim()) { toast('姓名不能为空', 'err'); return false; }
+    if (!/<html/i.test(html)) { toast('内容不完整，缺少 <html>', 'err'); return false; }
     var wasRaw = state.tab === 'raw' && state.rawDirty;
     setStatus('保存中…', 'busy');
     try {
@@ -748,34 +1175,52 @@
       state.html = html;
       state.dirty = false;
       state.rawDirty = false;
+      clearDraft();
+      resetHistory();
       setStatus('已保存', 'ok');
-      toast('已保存' + (j.backup ? '，备份：' + j.backup : ''), 'ok');
+      toast('已保存' + (j.backup ? '，已生成备份' : ''), 'ok');
       if (wasRaw) fill(parseSite(html));
       updatePreview(true);
+      return true;
     } catch (e) {
       setStatus('保存失败', 'err');
       toast(String(e && e.message ? e.message : e), 'err', 6000);
+      return false;
     }
   }
 
-  async function publish() {
+  async function save() {
+    var ok = await doSave();
+    if (ok && state.autoPublish) await publish({ auto: true });
+    return ok;
+  }
+
+  async function publish(opts) {
+    opts = opts || {};
     if (state.dirty) {
-      var go = confirm('还有未保存的修改，先保存再发布吗？');
-      if (go) { await save(); }
-      else { return; }
+      if (!opts.auto) {
+        if (!confirm('还有未保存的修改，先保存再发布吗？')) return;
+      }
+      var ok = await doSave();
+      if (!ok) return;
     }
-    if (!confirm('发布到 GitHub？约 1 分钟后上线。')) return;
+    if (!opts.auto && !confirm('发布到 GitHub？约 1 分钟后上线。')) return;
     setStatus('发布中…', 'busy');
     try {
       var r = await fetch('/api/publish', { method: 'POST' });
       var j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
       setStatus('已发布', 'ok');
-      toast(j.changed ? '已发布，约 1 分钟后上线' : '没有改动需要发布', 'ok');
-      showModal('发布日志', j.output || '完成');
+      if (opts.auto) {
+        toast(j.changed ? '已自动发布，约 1 分钟后上线' : '没有改动需要发布', 'ok');
+      } else {
+        toast(j.changed ? '已发布，约 1 分钟后上线' : '没有改动需要发布', 'ok');
+        showModal('发布日志', j.output || '完成');
+      }
     } catch (e) {
       setStatus('发布失败', 'err');
-      showModal('发布失败', String(e && e.message ? e.message : e));
+      if (opts.auto) toast('自动发布失败：' + String(e.message || e), 'err', 7000);
+      else showModal('发布失败', String(e && e.message ? e.message : e));
     }
   }
 
@@ -876,6 +1321,10 @@
       state.collapsed.clear();
       renderProjects();
       changed();
+    } else if (e.target.closest('.p-up')) {
+      moveProject(i, -1);
+    } else if (e.target.closest('.p-down')) {
+      moveProject(i, 1);
     } else if (e.target.closest('.p-collapse')) {
       if (state.collapsed.has(i)) state.collapsed.delete(i); else state.collapsed.add(i);
       renderProjects();
@@ -891,7 +1340,7 @@
     }
   });
 
-  $('#addProject').addEventListener('click', function () {
+  function addProject() {
     state.projects.push({
       icon: 'NEW', title: '新项目', desc: '一句话介绍这个项目。', status: '开发中', isDev: true,
       tags: ['Rust', 'AI 辅助'], links: [{ text: 'Gitee', url: '' }]
@@ -899,6 +1348,60 @@
     state.collapsed.clear();
     renderProjects();
     changed();
+  }
+  function moveProject(i, delta) {
+    var j = i + delta;
+    if (j < 0 || j >= state.projects.length) return;
+    var t = state.projects[i];
+    state.projects[i] = state.projects[j];
+    state.projects[j] = t;
+    state.collapsed.clear();
+    renderProjects();
+    changed();
+  }
+  $('#addProject').addEventListener('click', addProject);
+
+  /* 拖动排序 */
+  $('#projectList').addEventListener('dragstart', function (e) {
+    var grip = e.target.closest('.p-grip');
+    if (!grip) { e.preventDefault(); return; }
+    var card = grip.closest('.pcard');
+    state.dragFrom = Number(card.getAttribute('data-i'));
+    card.classList.add('dragging');
+    if (e.dataTransfer) {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(state.dragFrom));
+    }
+  });
+  $('#projectList').addEventListener('dragover', function (e) {
+    if (state.dragFrom < 0) return;
+    e.preventDefault();
+    var card = e.target.closest('.pcard');
+    if (!card) return;
+    Array.prototype.slice.call(document.querySelectorAll('.pcard')).forEach(function (c) {
+      c.classList.toggle('drop-target', c === card && Number(c.getAttribute('data-i')) !== state.dragFrom);
+    });
+  });
+  $('#projectList').addEventListener('drop', function (e) {
+    if (state.dragFrom < 0) return;
+    e.preventDefault();
+    var card = e.target.closest('.pcard');
+    if (!card) return;
+    var to = Number(card.getAttribute('data-i'));
+    var from = state.dragFrom;
+    state.dragFrom = -1;
+    if (from === to || isNaN(to)) { renderProjects(); return; }
+    var moved = state.projects.splice(from, 1)[0];
+    state.projects.splice(to, 0, moved);
+    state.collapsed.clear();
+    renderProjects();
+    changed();
+  });
+  $('#projectList').addEventListener('dragend', function () {
+    state.dragFrom = -1;
+    Array.prototype.slice.call(document.querySelectorAll('.pcard')).forEach(function (c) {
+      c.classList.remove('dragging', 'drop-target');
+    });
   });
 
   $('#rawHtml').addEventListener('input', function () {
@@ -926,28 +1429,119 @@
   Array.prototype.slice.call(document.querySelectorAll('.btn-save-2, .btn-save-3, .btn-save-4')).forEach(function (b) {
     b.addEventListener('click', save);
   });
-  $('#publishBtn').addEventListener('click', publish);
-  $('#publishBtn2').addEventListener('click', publish);
+  $('#publishBtn').addEventListener('click', function () { publish(); });
+  $('#publishBtn2').addEventListener('click', function () { publish(); });
 
   $('#deviceBtn').addEventListener('click', function () {
     var phone = $('#previewBody').classList.toggle('phone');
     $('#deviceBtn').textContent = phone ? '桌面' : '手机';
   });
   $('#refreshBtn').addEventListener('click', function () { updatePreview(true); });
+  $('#hidePreviewBtn').addEventListener('click', togglePreview);
+  $('#previewToggle').addEventListener('click', togglePreview);
+
+  $('#themeBtn').addEventListener('click', toggleTheme);
+  $('#helpBtn').addEventListener('click', showHelp);
+  $('#autoPublishBtn').addEventListener('click', function () { setAutoPublish(!state.autoPublish); });
+
+  $('#draftRestore').addEventListener('click', restoreDraft);
+  $('#draftDiscard').addEventListener('click', function () { clearDraft(); toast('已丢弃本地草稿', 'ok'); });
+
+  $('#backupList').addEventListener('click', function (e) {
+    var item = e.target.closest('.bk-item');
+    if (!item) return;
+    var name = item.getAttribute('data-name');
+    if (e.target.closest('.bk-view')) viewBackup(name);
+    else if (e.target.closest('.bk-restore')) restoreBackup(name);
+  });
+  $('#refreshBackups').addEventListener('click', loadBackups);
+
+  $('#paletteInput').addEventListener('input', function (e) {
+    paletteIndex = 0;
+    renderPalette(e.target.value);
+  });
+  $('#paletteInput').addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (paletteItems.length) { paletteIndex = (paletteIndex + 1) % paletteItems.length; renderPalette($('#paletteInput').value); }
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (paletteItems.length) { paletteIndex = (paletteIndex - 1 + paletteItems.length) % paletteItems.length; renderPalette($('#paletteInput').value); }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      runPalette(paletteIndex);
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      closePalette();
+    }
+  });
+  $('#paletteList').addEventListener('click', function (e) {
+    var item = e.target.closest('.cmd');
+    if (!item) return;
+    runPalette(Number(item.getAttribute('data-i')));
+  });
+  $('#palette').addEventListener('click', function (e) {
+    if (e.target === $('#palette')) closePalette();
+  });
+
+  function fallbackCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); } catch (e) {}
+    ta.remove();
+  }
+  $('#modalCopy').addEventListener('click', function () {
+    var text = $('#modalBody').textContent || '';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast('已复制到剪贴板', 'ok'); }, function () {
+        fallbackCopy(text); toast('已复制到剪贴板', 'ok');
+      });
+    } else {
+      fallbackCopy(text);
+      toast('已复制到剪贴板', 'ok');
+    }
+  });
 
   $('#modalClose').addEventListener('click', function () { $('#modal').classList.remove('show'); });
   $('#modal').addEventListener('click', function (e) { if (e.target === $('#modal')) $('#modal').classList.remove('show'); });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') { $('#modal').classList.remove('show'); }
-    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); save(); }
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); publish(); }
+    var mod = e.ctrlKey || e.metaKey;
+    var key = e.key.toLowerCase();
+    var tag = (e.target.tagName || '').toLowerCase();
+    var editing = tag === 'input' || tag === 'textarea' || e.target.isContentEditable;
+
+    if (e.key === 'Escape') {
+      if ($('#palette').classList.contains('show')) { closePalette(); return; }
+      $('#modal').classList.remove('show');
+      return;
+    }
+    if (mod && key === 'k') {
+      e.preventDefault();
+      if ($('#palette').classList.contains('show')) closePalette(); else openPalette();
+      return;
+    }
+    if (mod && key === 's') { e.preventDefault(); save(); return; }
+    if (mod && e.key === 'Enter') { e.preventDefault(); publish(); return; }
+    if (mod && key === 'z' && !editing) {
+      e.preventDefault();
+      if (e.shiftKey) redo(); else undo();
+      return;
+    }
+    if (mod && key === 'y' && !editing) { e.preventDefault(); redo(); return; }
+    if (e.key === '?' && !editing) { e.preventDefault(); showHelp(); }
   });
 
   window.addEventListener('beforeunload', function (e) {
     if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
   });
 
+  applyTheme(lsGet('kiopen-theme') || ((window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark'));
+  setAutoPublish(lsGet('kiopen-autopublish') !== '0', true);
   load();
 })();
 </script>
