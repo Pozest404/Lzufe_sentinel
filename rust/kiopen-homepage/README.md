@@ -8,14 +8,14 @@
 
 ## 下载
 
-- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.0)
-- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.0_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.0/kiopen-homepage_2.1.0_amd64.deb)
-- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.0/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
+- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.1)
+- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.1_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.1/kiopen-homepage_2.1.1_amd64.deb)
+- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.1/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
 
 ## 安装
 
 ```bash
-sudo apt install ./kiopen-homepage_2.0.0_amd64.deb
+sudo apt install ./kiopen-homepage_2.1.1_amd64.deb
 ```
 
 或直接使用二进制：
@@ -34,6 +34,15 @@ kiopen-homepage
 首次启动会把 [Pozest404.github.io](https://github.com/Pozest404/Pozest404.github.io) 克隆到 `~/kiopen-homepage`，然后打开浏览器里的编辑器。
 
 也可以在应用菜单里搜索「Kiopen 主页编辑器」。
+
+### 打不开 / 启动没反应？
+
+- 请从终端运行 `kiopen-homepage`，终端会打印地址与错误信息
+- 页面会立即打开并显示初始化进度；失败时显示具体原因和「重试」按钮
+- 首次运行需要 `git` 以及能访问 GitHub；无法访问时用镜像：
+  `KIOPEN_REPO=https://gitee.com/you/homepage.git kiopen-homepage`
+- 端口 8787 被占用会自动顺延到 8788、8789…，终端会打印实际地址
+- 如果提示 `package architecture (amd64) does not match system`，说明系统不是 x86_64，请改用对应架构的二进制
 
 ### 功能
 

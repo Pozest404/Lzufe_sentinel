@@ -4,9 +4,9 @@ use std::io::{Read, Write};
 use std::net::{TcpListener, TcpStream};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 const EDITOR_HTML: &str = include_str!("../assets/editor.html");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -23,6 +23,14 @@ struct Config {
     repo: String,
     branch: String,
     no_browser: bool,
+    setup: Arc<Mutex<SetupState>>,
+}
+
+#[derive(Default)]
+struct SetupState {
+    ready: bool,
+    running: bool,
+    error: Option<String>,
 }
 
 fn main() {
@@ -83,6 +91,7 @@ fn run() -> Result<(), String> {
             .unwrap_or_else(|_| "https://github.com/Pozest404/Pozest404.github.io.git".into()),
         branch: env::var("KIOPEN_BRANCH").unwrap_or_else(|_| "main".into()),
         no_browser,
+        setup: Arc::new(Mutex::new(SetupState::default())),
     };
 
     match cmd.as_str() {
@@ -98,13 +107,59 @@ fn run() -> Result<(), String> {
             Ok(())
         }
         _ => {
-            setup(&cfg)?;
             if let Ok(p) = fs::canonicalize(&cfg.dir) {
                 cfg.dir = p;
             }
-            serve(&cfg)
+            let ready = cfg.dir.join("index.html").exists();
+            let (listener, real_port) = bind_listener(cfg.port)?;
+            cfg.port = real_port;
+            {
+                let mut st = cfg.setup.lock().unwrap_or_else(|e| e.into_inner());
+                st.ready = ready;
+                st.running = !ready;
+            }
+            if !ready {
+                let bg = cfg.clone();
+                thread::spawn(move || run_setup(&bg));
+            }
+            serve(listener, &cfg)
         }
     }
+}
+
+fn run_setup(cfg: &Config) {
+    {
+        let mut st = cfg.setup.lock().unwrap_or_else(|e| e.into_inner());
+        st.running = true;
+        st.error = None;
+    }
+    let result = setup(cfg);
+    let ready = cfg.dir.join("index.html").exists();
+    let mut st = cfg.setup.lock().unwrap_or_else(|e| e.into_inner());
+    st.ready = ready;
+    st.running = false;
+    match result {
+        Ok(()) if ready => {
+            st.error = None;
+        }
+        Ok(()) => {
+            st.error = Some(format!("{} 里没有 index.html", cfg.dir.display()));
+        }
+        Err(e) => {
+            st.error = Some(e);
+        }
+    }
+}
+
+fn bind_listener(start: u16) -> Result<(TcpListener, u16), String> {
+    let mut last = String::new();
+    for p in start..start.saturating_add(20) {
+        match TcpListener::bind(format!("127.0.0.1:{p}")) {
+            Ok(l) => return Ok((l, p)),
+            Err(e) => last = format!("127.0.0.1:{p}：{e}"),
+        }
+    }
+    Err(format!("无法监听本地端口（{last}）"))
 }
 
 fn default_dir() -> PathBuf {
@@ -175,10 +230,31 @@ fn setup(cfg: &Config) -> Result<(), String> {
         fs::create_dir_all(parent).map_err(|e| format!("创建目录失败：{e}"))?;
     }
     let dir_s = cfg.dir.to_string_lossy().to_string();
-    let out = Command::new("git")
+    let mut child = Command::new("git")
         .args(["clone", "--depth", "1", &cfg.repo, &dir_s])
-        .output()
-        .map_err(|e| format!("无法运行 git：{e}"))?;
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("无法运行 git：{e}（请先安装 git）"))?;
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {}
+            Err(e) => return Err(format!("等待 git 失败：{e}")),
+        }
+        if start.elapsed() > Duration::from_secs(120) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return Err(
+                "克隆超时：无法访问 GitHub。请检查网络，或设置 KIOPEN_REPO 为可达的镜像仓库".into(),
+            );
+        }
+        thread::sleep(Duration::from_millis(200));
+    }
+    let out = child
+        .wait_with_output()
+        .map_err(|e| format!("读取 git 输出失败：{e}"))?;
     if !out.status.success() {
         return Err(format!(
             "克隆失败：{}",
@@ -208,13 +284,15 @@ fn ensure_exclude(cfg: &Config) -> Result<(), String> {
     Ok(())
 }
 
-fn serve(cfg: &Config) -> Result<(), String> {
+fn serve(listener: TcpListener, cfg: &Config) -> Result<(), String> {
     let addr = format!("127.0.0.1:{}", cfg.port);
-    let listener = TcpListener::bind(&addr).map_err(|e| format!("无法监听 {addr}：{e}"))?;
     let url = format!("http://{addr}/");
     println!("\x1b[36mKiopen 主页编辑器 v{VERSION}\x1b[0m");
     println!("目录  {}", cfg.dir.display());
     println!("地址  {url}");
+    if !cfg.setup.lock().unwrap_or_else(|e| e.into_inner()).ready {
+        println!("首次运行正在准备仓库，请稍候…");
+    }
     println!("按 Ctrl+C 退出\n");
     if !cfg.no_browser {
         open_browser(&url);
@@ -232,19 +310,49 @@ fn serve(cfg: &Config) -> Result<(), String> {
 }
 
 fn open_browser(url: &str) {
-    for prog in ["xdg-open", "gio", "sensible-browser"] {
-        let mut c = Command::new(prog);
-        if prog == "gio" {
-            c.arg("open");
-        }
-        c.arg(url)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-        if c.spawn().is_ok() {
+    let attempts: [(&str, &[&str]); 8] = [
+        ("xdg-open", &[]),
+        ("gio", &["open"]),
+        ("sensible-browser", &[]),
+        ("x-www-browser", &[]),
+        ("firefox", &[]),
+        ("chromium", &[]),
+        ("google-chrome", &[]),
+        ("microsoft-edge", &[]),
+    ];
+    for (prog, args) in attempts {
+        if launch_browser(prog, args, url) {
             return;
         }
     }
     println!("（未能自动打开浏览器，请手动访问上面的地址）");
+    let _ = Command::new("notify-send")
+        .args(["Kiopen 主页编辑器", &format!("请在浏览器打开 {url}")])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn();
+}
+
+fn launch_browser(prog: &str, args: &[&str], url: &str) -> bool {
+    let mut c = Command::new(prog);
+    c.args(args).arg(url).stdout(Stdio::null()).stderr(Stdio::null());
+    let mut child = match c.spawn() {
+        Ok(ch) => ch,
+        Err(_) => return false,
+    };
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(st)) => return st.success(),
+            Ok(None) => {}
+            Err(_) => return false,
+        }
+        if start.elapsed() > Duration::from_millis(1500) {
+            // 进程仍在运行，通常说明浏览器已成功接管
+            return true;
+        }
+        thread::sleep(Duration::from_millis(100));
+    }
 }
 
 fn handle(mut s: TcpStream, cfg: &Config) -> std::io::Result<()> {
@@ -314,6 +422,10 @@ fn handle(mut s: TcpStream, cfg: &Config) -> std::io::Result<()> {
             respond(&mut s, 200, CT_JSON, b.as_bytes())
         }
         ("GET", "/api/site") => serve_index(cfg, &mut s),
+        ("POST", "/api/setup") => {
+            let b = start_setup(cfg);
+            respond(&mut s, 200, CT_JSON, &b)
+        }
         ("POST", "/api/save") => match save(cfg, &body) {
             Ok(b) => respond(&mut s, 200, CT_JSON, &b),
             Err(e) => err(&mut s, 400, &e),
@@ -475,14 +587,34 @@ fn info(cfg: &Config) -> String {
             }
         })
         .unwrap_or_else(|_| cfg.repo.clone());
+    let (ready, running, error) = {
+        let st = cfg.setup.lock().unwrap_or_else(|e| e.into_inner());
+        (st.ready, st.running, st.error.clone().unwrap_or_default())
+    };
     format!(
-        r#"{{"dir":"{}","remote":"{}","branch":"{}","site_url":"{}","version":"{}"}}"#,
+        r#"{{"dir":"{}","remote":"{}","branch":"{}","site_url":"{}","version":"{}","ready":{},"setup_running":{},"setup_error":"{}"}}"#,
         js(&cfg.dir.to_string_lossy()),
         js(&remote),
         js(&cfg.branch),
         js(&cfg.site_url),
-        VERSION
+        VERSION,
+        ready,
+        running,
+        js(&error)
     )
+}
+
+fn start_setup(cfg: &Config) -> Vec<u8> {
+    let mut st = cfg.setup.lock().unwrap_or_else(|e| e.into_inner());
+    if st.running {
+        return r#"{"ok":true,"started":false,"message":"正在初始化"}"#.as_bytes().to_vec();
+    }
+    st.running = true;
+    st.error = None;
+    drop(st);
+    let bg = cfg.clone();
+    thread::spawn(move || run_setup(&bg));
+    br#"{"ok":true,"started":true}"#.to_vec()
 }
 
 fn save(cfg: &Config, body: &[u8]) -> Result<Vec<u8>, String> {

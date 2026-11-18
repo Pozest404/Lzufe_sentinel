@@ -376,6 +376,18 @@
   .toast .x:hover { color: var(--text); }
   .toast { position: relative; }
 
+  /* ===== 初始化引导 ===== */
+  .setup { position: fixed; inset: 0; z-index: 200; display: none; place-items: center; padding: 24px; background: rgba(3, 6, 12, 0.78); backdrop-filter: blur(8px); }
+  .setup.show { display: grid; }
+  .setup-card { width: min(520px, 100%); padding: 30px 28px; border-radius: 18px; border: 1px solid var(--line2); background: var(--panel); box-shadow: 0 40px 100px -20px #000; text-align: center; }
+  .setup-card .logo { width: 44px; height: 44px; margin: 0 auto 14px; border-radius: 13px; display: grid; place-items: center; font-weight: 800; font-size: 20px; color: #fff; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .setup-card h2 { margin: 0 0 8px; font-size: 18px; }
+  .setup-card p { margin: 0 0 14px; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+  .setup-card pre { display: none; margin: 0 0 16px; padding: 12px; border-radius: 9px; background: rgba(217, 72, 72, 0.12); border: 1px solid rgba(217, 72, 72, 0.3); color: #f08a8a; font-size: 11.5px; text-align: left; white-space: pre-wrap; max-height: 150px; overflow: auto; }
+  .setup-card pre.show { display: block; }
+  .setup-actions { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+  [data-theme="light"] .setup-card { background: #fff; }
+
   /* ===== 响应式 ===== */
   @media (max-width: 1100px) {
     .workspace { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) 46vh; }
@@ -460,7 +472,7 @@
         <div><kbd>Ctrl</kbd> + <kbd>K</kbd> 命令面板</div>
         <div><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存</div>
         <div><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 发布</div>
-        <div style="margin-top:6px" id="versionText">v2.1.0</div>
+        <div style="margin-top:6px" id="versionText">v2.1.1</div>
       </div>
     </nav>
 
@@ -584,6 +596,20 @@
   </div>
 
   <div class="toasts" id="toasts" role="status" aria-live="polite"></div>
+
+  <div class="setup" id="setup" role="dialog" aria-modal="true" aria-labelledby="setupTitle">
+    <div class="setup-card">
+      <div class="logo">K</div>
+      <h2 id="setupTitle">正在准备主页仓库…</h2>
+      <p id="setupMsg">首次运行需要从 GitHub 克隆仓库，请稍候（最多约 2 分钟）。</p>
+      <pre id="setupError"></pre>
+      <div class="setup-actions">
+        <button class="btn primary" id="setupRetry" type="button">重试</button>
+        <button class="btn" id="setupClose" type="button">稍后再试</button>
+      </div>
+      <p>如果一直失败：确认已安装 git，且能访问 GitHub；也可以设置环境变量 <code>KIOPEN_REPO</code> 指向可访问的镜像仓库后重新启动。</p>
+    </div>
+  </div>
 
   <div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="命令面板">
     <div class="palette-box">
@@ -1130,20 +1156,62 @@
     $('#rawCount').textContent = n + ' 行';
   }
 
+  var setupTimer = null;
+  function showSetup(info) {
+    info = info || {};
+    var running = info.setup_running === true;
+    var err = info.setup_error || '';
+    $('#setup').classList.add('show');
+    $('#setupTitle').textContent = running ? '正在准备主页仓库…' : '主页仓库未就绪';
+    $('#setupMsg').textContent = running
+      ? '首次运行需要克隆仓库，请稍候（最多约 2 分钟）。'
+      : '克隆或更新失败，请检查网络后重试。';
+    $('#setupError').textContent = err;
+    $('#setupError').classList.toggle('show', !!err);
+    $('#setupRetry').disabled = running;
+    clearTimeout(setupTimer);
+    if (running) setupTimer = setTimeout(pollSetup, 2000);
+  }
+  function pollSetup() {
+    if (!$('#setup').classList.contains('show')) return;
+    fetch('/api/info', { cache: 'no-store' }).then(function (r) { return r.json(); }).then(function (info) {
+      if (info.ready) {
+        clearTimeout(setupTimer);
+        $('#setup').classList.remove('show');
+        toast('仓库已就绪', 'ok');
+        load();
+      } else {
+        showSetup(info);
+      }
+    }).catch(function () { setupTimer = setTimeout(pollSetup, 3000); });
+  }
+  async function retrySetup() {
+    $('#setupRetry').disabled = true;
+    $('#setupError').classList.remove('show');
+    try { await fetch('/api/setup', { method: 'POST' }); } catch (e) {}
+    showSetup({ setup_running: true });
+  }
+
   async function load() {
     try {
       var res = await Promise.all([
         fetch('/api/site', { cache: 'no-store' }),
         fetch('/api/info', { cache: 'no-store' })
       ]);
-      if (!res[0].ok) throw new Error('读取主页失败（HTTP ' + res[0].status + '）');
-      var html = await res[0].text();
       var info = res[1].ok ? await res[1].json() : {};
-      state.html = html;
-      fill(parseSite(html));
       if (info.site_url) { $('#siteLink').href = info.site_url; }
       if (info.dir) { $('#dirPath').textContent = info.dir; draftDir = info.dir; }
       if (info.version) { $('#versionText').textContent = 'v' + info.version; }
+      if (!res[0].ok || info.ready === false) {
+        state.html = '';
+        setConn(!!res[1].ok);
+        setStatus(info.setup_running ? '初始化中…' : '等待初始化', info.setup_running ? 'busy' : 'err');
+        showSetup(info);
+        return;
+      }
+      var html = await res[0].text();
+      state.html = html;
+      fill(parseSite(html));
       setConn(true);
       setStatus('已加载', 'ok');
       state.dirty = false;
@@ -1446,6 +1514,12 @@
 
   $('#draftRestore').addEventListener('click', restoreDraft);
   $('#draftDiscard').addEventListener('click', function () { clearDraft(); toast('已丢弃本地草稿', 'ok'); });
+
+  $('#setupRetry').addEventListener('click', retrySetup);
+  $('#setupClose').addEventListener('click', function () {
+    clearTimeout(setupTimer);
+    $('#setup').classList.remove('show');
+  });
 
   $('#backupList').addEventListener('click', function (e) {
     var item = e.target.closest('.bk-item');
