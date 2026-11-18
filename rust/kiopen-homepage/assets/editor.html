@@ -472,7 +472,7 @@
         <div><kbd>Ctrl</kbd> + <kbd>K</kbd> 命令面板</div>
         <div><kbd>Ctrl</kbd> + <kbd>S</kbd> 保存</div>
         <div><kbd>Ctrl</kbd> + <kbd>Enter</kbd> 发布</div>
-        <div style="margin-top:6px" id="versionText">v2.1.2</div>
+        <div style="margin-top:6px" id="versionText">v2.1.3</div>
       </div>
     </nav>
 
@@ -634,7 +634,7 @@
     html: '', f: null, projects: [], avatarFile: 'avatar.png',
     tab: 'basic', dirty: false, rawDirty: false, collapsed: new Set(),
     theme: 'dark', autoPublish: false, dragFrom: -1,
-    history: [], hIndex: -1, hTimer: null
+    history: [], hIndex: -1, hTimer: null, rev: 0, doc: null
   };
   var previewTimer = null;
   var draftTimer = null;
@@ -642,6 +642,11 @@
   var pendingDraft = null;
   var paletteItems = [];
   var paletteIndex = 0;
+  var buildCache = { rev: -1, html: '' };
+  var previewLast = '';
+  var previewScrollY = 0;
+  var previewPending = false;
+  var lastDraftHtml = '';
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -742,6 +747,8 @@
   }
 
   function fill(p) {
+    state.rev++;
+    state.doc = null;
     state.f = {
       name: p.name, desc: p.desc, phrases: p.phrases, tags: p.tags,
       github: p.github, gitee: p.gitee, email: p.email,
@@ -833,7 +840,8 @@
   function buildHtml() {
     if (!state.html || !state.f) return state.html || '';
     var f = state.f;
-    var doc = new DOMParser().parseFromString(state.html, 'text/html');
+    if (!state.doc) state.doc = new DOMParser().parseFromString(state.html, 'text/html');
+    var doc = state.doc;
 
     var nameEl = doc.querySelector('.name');
     if (nameEl) nameEl.textContent = f.name;
@@ -844,17 +852,27 @@
 
     Array.prototype.slice.call(doc.querySelectorAll('.socials a')).forEach(function (a) {
       var h = a.getAttribute('href') || '';
-      if (h.indexOf('github.com') >= 0) a.setAttribute('href', f.github);
-      else if (h.indexOf('gitee.com') >= 0) a.setAttribute('href', f.gitee);
-      else if (h.indexOf('mailto:') === 0) a.setAttribute('href', 'mailto:' + f.email);
+      var k = a.__kp;
+      if (!k) {
+        k = h.indexOf('github.com') >= 0 ? 'gh' : h.indexOf('gitee.com') >= 0 ? 'gt' : h.indexOf('mailto:') === 0 ? 'mail' : '';
+        a.__kp = k;
+      }
+      if (k === 'gh') a.setAttribute('href', f.github);
+      else if (k === 'gt') a.setAttribute('href', f.gitee);
+      else if (k === 'mail') a.setAttribute('href', 'mailto:' + f.email);
     });
 
     Array.prototype.slice.call(doc.querySelectorAll('.contact-item')).forEach(function (a) {
       var h = a.getAttribute('href') || '';
+      var k = a.__kp;
+      if (!k) {
+        k = h.indexOf('gitee.com') >= 0 ? 'gt' : h.indexOf('github.com') >= 0 ? 'gh' : h.indexOf('mailto:') === 0 ? 'mail' : '';
+        a.__kp = k;
+      }
       var strong = a.querySelector('strong');
-      if (h.indexOf('gitee.com') >= 0) { a.setAttribute('href', f.gitee); if (strong) strong.textContent = stripProto(f.gitee); }
-      else if (h.indexOf('github.com') >= 0) { a.setAttribute('href', f.github); if (strong) strong.textContent = stripProto(f.github); }
-      else if (h.indexOf('mailto:') === 0) { a.setAttribute('href', 'mailto:' + f.email); if (strong) strong.textContent = f.email; }
+      if (k === 'gt') { a.setAttribute('href', f.gitee); if (strong) strong.textContent = stripProto(f.gitee); }
+      else if (k === 'gh') { a.setAttribute('href', f.github); if (strong) strong.textContent = stripProto(f.github); }
+      else if (k === 'mail') { a.setAttribute('href', 'mailto:' + f.email); if (strong) strong.textContent = f.email; }
     });
 
     var copy = doc.getElementById('copyEmail');
@@ -886,11 +904,20 @@
 
   function sourceHtml() {
     if (state.tab === 'raw' && state.rawDirty) return $('#rawHtml').value;
-    return buildHtml();
+    if (buildCache.rev === state.rev && buildCache.html) return buildCache.html;
+    var html = buildHtml();
+    buildCache = { rev: state.rev, html: html };
+    return html;
+  }
+
+  function previewVisible() {
+    return !document.hidden && !$('.workspace').classList.contains('hide-preview');
   }
 
   function updatePreview(immediate) {
     if (immediate) clearTimeout(previewTimer);
+    if (!previewVisible()) { previewPending = true; return; }
+    previewPending = false;
     var html;
     try { html = sourceHtml(); } catch (e) { return; }
     if (!html) return;
@@ -904,6 +931,7 @@
 
   function changed(silent) {
     state.dirty = true;
+    state.rev++;
     setStatus('未保存', 'dirty');
     schedulePreview();
     if (!silent) pushHistory();
@@ -954,13 +982,20 @@
     draftTimer = setTimeout(function () {
       var html;
       try { html = sourceHtml(); } catch (e) { return; }
-      if (!html) return;
-      lsSet(draftKey(), JSON.stringify({ ts: Date.now(), html: html, tab: state.tab }));
+      if (!html || html === lastDraftHtml) return;
+      var write = function () {
+        if (html === lastDraftHtml) return;
+        lastDraftHtml = html;
+        lsSet(draftKey(), JSON.stringify({ ts: Date.now(), html: html, tab: state.tab }));
+      };
+      if (window.requestIdleCallback) window.requestIdleCallback(write, { timeout: 1500 });
+      else write();
     }, 900);
   }
   function clearDraft() {
     lsDel(draftKey());
     pendingDraft = null;
+    lastDraftHtml = '';
     $('#draftBanner').classList.remove('show');
   }
   function checkDraft() {
@@ -1005,6 +1040,7 @@
   }
   function togglePreview() {
     var hidden = $('.workspace').classList.toggle('hide-preview');
+    if (!hidden && previewPending) updatePreview(true);
     toast(hidden ? '已隐藏预览区' : '已显示预览区');
   }
 
@@ -1081,7 +1117,16 @@
   /* ===== 历史备份 ===== */
   function previewHtml(html) {
     if (!html) return;
-    $('#previewFrame').srcdoc = html.replace('<head>', '<head><base href="/preview/">');
+    var doc = html.replace('<head>', '<head><base href="/preview/">');
+    if (doc === previewLast) return;
+    previewLast = doc;
+    var f = $('#previewFrame');
+    f.style.background = state.theme === 'light' ? '#eef2ff' : '#060912';
+    try { previewScrollY = f.contentWindow.scrollY || 0; } catch (e) { previewScrollY = 0; }
+    f.onload = function () {
+      try { f.contentWindow.scrollTo(0, previewScrollY); } catch (e) {}
+    };
+    f.srcdoc = doc;
   }
   async function loadBackups() {
     var box = $('#backupList');
@@ -1241,6 +1286,8 @@
       var j = await r.json();
       if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
       state.html = html;
+      state.rev++;
+      state.doc = null;
       state.dirty = false;
       state.rawDirty = false;
       clearDraft();
@@ -1308,6 +1355,8 @@
       if (!r.ok || !j.ok) throw new Error(j.error || ('HTTP ' + r.status));
       state.avatarFile = j.file;
       state.html = state.html.replace(/avatar\.(png|jpe?g|webp|gif)/g, j.file);
+      state.rev++;
+      state.doc = null;
       $('#avatarImg').src = '/preview/' + encodeURIComponent(j.file) + '?t=' + Date.now();
       $('#avatarName').textContent = j.file + ' · ' + (j.bytes / 1024).toFixed(1) + ' KB';
       state.dirty = true;
@@ -1507,6 +1556,9 @@
   $('#refreshBtn').addEventListener('click', function () { updatePreview(true); });
   $('#hidePreviewBtn').addEventListener('click', togglePreview);
   $('#previewToggle').addEventListener('click', togglePreview);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden && previewPending) updatePreview(true);
+  });
 
   $('#themeBtn').addEventListener('click', toggleTheme);
   $('#helpBtn').addEventListener('click', showHelp);

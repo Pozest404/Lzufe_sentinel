@@ -8,14 +8,14 @@
 
 ## 下载
 
-- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.2)
-- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.2_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.2/kiopen-homepage_2.1.2_amd64.deb)
-- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.2/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
+- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.3)
+- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.3_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.3/kiopen-homepage_2.1.3_amd64.deb)
+- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.3/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
 
 ## 安装
 
 ```bash
-sudo apt install ./kiopen-homepage_2.1.2_amd64.deb
+sudo apt install ./kiopen-homepage_2.1.3_amd64.deb
 ```
 
 或直接使用二进制：
@@ -56,6 +56,7 @@ kiopen-homepage
 | 源码 | 直接编辑完整 HTML |
 
 - 右侧实时预览，支持桌面 / 手机两种视图，可一键隐藏
+- 预览按需重建：内容不变不刷新，滚动位置保持；隐藏或切到后台时暂停，恢复后自动补齐
 - 每次保存自动备份到 `.backups/`（已加入 git 忽略），可随时回滚
 - 草稿自动保存在浏览器，刷新或误关页面后可恢复
 - 命令面板（`Ctrl + K`）快速执行保存、发布、切页、换主题等操作
