@@ -8,14 +8,14 @@
 
 ## 下载
 
-- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.1)
-- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.1_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.1/kiopen-homepage_2.1.1_amd64.deb)
-- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.1/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
+- 发行版页面：[gitee.com/kiopen/kiopen-homepage/releases](https://gitee.com/kiopen/kiopen-homepage/releases/tag/v2.1.2)
+- Debian / Ubuntu / Pop!_OS：[kiopen-homepage_2.1.2_amd64.deb](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.2/kiopen-homepage_2.1.2_amd64.deb)
+- 任意 x86_64 Linux：[kiopen-homepage-x86_64-linux](https://gitee.com/kiopen/kiopen-homepage/releases/download/v2.1.2/kiopen-homepage-x86_64-linux)（静态二进制，可直接运行）
 
 ## 安装
 
 ```bash
-sudo apt install ./kiopen-homepage_2.1.1_amd64.deb
+sudo apt install ./kiopen-homepage_2.1.2_amd64.deb
 ```
 
 或直接使用二进制：
@@ -62,6 +62,7 @@ kiopen-homepage
 - 多级撤销 / 重做（`Ctrl + Z` / `Ctrl + Shift + Z`）
 - 深色 / 浅色主题，跟随系统或手动切换
 - **自动发布**：开启后每次保存成功会自动提交并推送
+- **启动自动同步**：每次启动自动 `fetch` 并快进到远端最新；若本地有未提交修改则跳过，避免覆盖
 - `Ctrl + S` 保存，`Ctrl + Enter` 发布
 - 服务只监听 `127.0.0.1`，并校验 Origin，局域网和外网都无法访问
 

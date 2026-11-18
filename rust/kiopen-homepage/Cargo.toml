@@ -1,6 +1,6 @@
 [package]
 name = "kiopen-homepage"
-version = "2.1.1"
+version = "2.1.2"
 edition = "2021"
 description = "Kiopen 个人主页可视化编辑器"
 license = "MIT"

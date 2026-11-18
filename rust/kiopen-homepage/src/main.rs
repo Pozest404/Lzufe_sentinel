@@ -121,6 +121,11 @@ fn run() -> Result<(), String> {
             if !ready {
                 let bg = cfg.clone();
                 thread::spawn(move || run_setup(&bg));
+            } else {
+                match sync_existing(&cfg) {
+                    Ok(()) => println!("已与远端同步"),
+                    Err(e) => println!("自动同步跳过：{e}"),
+                }
             }
             serve(listener, &cfg)
         }
@@ -203,6 +208,9 @@ fn setup(cfg: &Config) -> Result<(), String> {
         return Err(format!("{} 不是目录", cfg.dir.display()));
     }
     if cfg.dir.join("index.html").exists() {
+        if cfg.dir.join(".git").exists() {
+            let _ = sync_existing(cfg);
+        }
         ensure_exclude(cfg)?;
         return Ok(());
     }
@@ -264,6 +272,83 @@ fn setup(cfg: &Config) -> Result<(), String> {
     ensure_exclude(cfg)?;
     println!("已克隆 {} → {}", cfg.repo, cfg.dir.display());
     Ok(())
+}
+
+/// 已有仓库时对齐到远端最新；失败只返回原因，不影响启动。
+fn sync_existing(cfg: &Config) -> Result<(), String> {
+    let (status, code) = git(cfg, &["status", "--porcelain"])
+        .map_err(|e| format!("无法读取 git 状态：{e}"))?;
+    if code != 0 {
+        return Err("不是有效的 git 仓库".into());
+    }
+    if !status.trim().is_empty() {
+        return Err("本地有未提交的修改，跳过同步".into());
+    }
+    let branch = match git(cfg, &["rev-parse", "--abbrev-ref", "HEAD"]) {
+        Ok((s, 0)) if !s.trim().is_empty() && s.trim() != "HEAD" => s.trim().to_string(),
+        _ => cfg.branch.clone(),
+    };
+    let shallow = cfg.dir.join(".git").join("shallow").exists();
+    let fetched = if shallow {
+        // 浅克隆无法可靠判断领先/落后，先补全历史（首次后即不再重复）
+        git_timeout(cfg, &["fetch", "--unshallow", "origin"], 20)
+    } else {
+        git_timeout(cfg, &["fetch", "origin"], 10)
+    };
+    match fetched {
+        Some((_, 0)) => {}
+        Some((out, _)) => return Err(format!("fetch 失败：{}", out.trim())),
+        None => return Err("fetch 超时".into()),
+    }
+    let target = format!("origin/{branch}");
+    let ahead = match git(cfg, &["rev-list", "--count", &format!("{target}..HEAD")]) {
+        Ok((s, 0)) => s.trim().parse::<u64>().unwrap_or(1),
+        _ => return Err("无法比较本地与远端".into()),
+    };
+    let behind = match git(cfg, &["rev-list", "--count", &format!("HEAD..{target}")]) {
+        Ok((s, 0)) => s.trim().parse::<u64>().unwrap_or(0),
+        _ => return Err("无法比较本地与远端".into()),
+    };
+    if behind == 0 {
+        return Ok(());
+    }
+    if ahead > 0 {
+        return Err("本地有未推送的提交，跳过同步".into());
+    }
+    // 工作区干净且没有本地提交，直接对齐到远端，避开浅克隆的历史边界问题
+    match git_timeout(cfg, &["reset", "--hard", &target], 15) {
+        Some((_, 0)) => Ok(()),
+        Some((out, _)) => Err(format!("reset 失败：{}", out.trim())),
+        None => Err("reset 超时".into()),
+    }
+}
+
+fn git_timeout(cfg: &Config, args: &[&str], secs: u64) -> Option<(String, i32)> {
+    let mut child = Command::new("git")
+        .current_dir(&cfg.dir)
+        .args(args)
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .ok()?;
+    let start = Instant::now();
+    loop {
+        match child.try_wait() {
+            Ok(Some(_)) => break,
+            Ok(None) => {}
+            Err(_) => return None,
+        }
+        if start.elapsed() > Duration::from_secs(secs) {
+            let _ = child.kill();
+            let _ = child.wait();
+            return None;
+        }
+        thread::sleep(Duration::from_millis(150));
+    }
+    let out = child.wait_with_output().ok()?;
+    let mut s = String::from_utf8_lossy(&out.stdout).to_string();
+    s.push_str(&String::from_utf8_lossy(&out.stderr));
+    Some((s, out.status.code().unwrap_or(-1)))
 }
 
 fn ensure_exclude(cfg: &Config) -> Result<(), String> {

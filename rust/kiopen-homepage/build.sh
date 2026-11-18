@@ -23,5 +23,5 @@ install -m 644 README.md "$STAGE/usr/share/doc/kiopen-homepage/"
 SIZE=$(du -sk "$STAGE" | cut -f1)
 sed "s/__SIZE__/$SIZE/" packaging/control > "$STAGE/DEBIAN/control"
 
-dpkg-deb --build --root-owner-group "$STAGE" "kiopen-homepage_2.1.1_amd64.deb"
-echo "已生成 kiopen-homepage_2.1.1_amd64.deb"
+dpkg-deb --build --root-owner-group "$STAGE" "kiopen-homepage_2.1.2_amd64.deb"
+echo "已生成 kiopen-homepage_2.1.2_amd64.deb"
