@@ -4,4 +4,4 @@ version = 4
 
 [[package]]
 name = "kiopen-homepage"
-version = "2.1.4"
+version = "3.0.0"
