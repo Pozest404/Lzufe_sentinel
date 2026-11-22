@@ -76,18 +76,23 @@
     ['海淀南路', .55, .70, 'h'], ['知春路', .79, .66, 'h'], ['中关村大街', .66, .48, 'v'],
     ['成府路', .74, .31, 'h'], ['双榆树北路', .73, .83, 'h'], ['彩和坊路', .47, .55, 'v'],
     ['巴沟路', .32, .80, 'h'], ['蓝靛厂北路', .15, .84, 'v'], ['清华西路', .44, .12, 'h'],
-    ['中关村北大街', .62, .18, 'v'], ['中关村南路', .73, .55, 'h'], ['双榆树', .82, .90, 'h']
+    ['中关村北大街', .62, .18, 'v'], ['中关村南路', .73, .55, 'h'], ['双榆树', .82, .90, 'h'],
+    ['万泉河路', .035, .36, 'v'], ['苏州街', .41, .34, 'v'], ['万柳中路', .10, .67, 'v'],
+    ['北京大学', .15, .10, 'h'], ['清华大学', .53, .055, 'h'], ['人民大学', .57, .94, 'h'],
+    ['海淀桥', .36, .63, 'h'], ['北四环西路', .88, .13, 'h']
   ];
   var LABELS_LZ = [
     ['陇桥学院', .42, .10, 'h'], ['博文学院', .07, .07, 'h'], ['兰州工商学院', .66, .17, 'h'],
     ['和平中学', .03, .29, 'h'], ['外语职业学院', .17, .43, 'h'], ['财经大学', .07, .55, 'h'],
     ['财经大学', .07, .60, 'h'], ['兰州财经大学（和平校区）', .59, .60, 'h'], ['财经大学学生公寓', .08, .71, 'h'],
-    ['学生公寓楼', .73, .28, 'h'], ['薇乐大道', .28, .37, 'v']
+    ['学生公寓楼', .73, .28, 'h'], ['薇乐大道', .28, .37, 'v'],
+    ['兰州财经大学', .40, .48, 'h'], ['和平镇', .86, .74, 'h'], ['G309', .56, .90, 'h']
   ];
 
   function drawAmapBase(ctx, w, h, style, seed, kind){
     var rng = mulberry32(hashSeed(seed + '|' + style + '|' + kind + '|map'));
     var night = style === 'night';
+    var trailKind = kind === 'trail';
     var k = w / 388;
     var pal = night ? {
       land:'#171A1F', block:'#1D2127', blockLine:'#242A31',
@@ -95,39 +100,46 @@
       park:'#1D2B23', parkLine:'#24382C', tree:'#2C4735', water:'#162630', waterLine:'#1E323D',
       label:'rgba(186,196,190,.42)', halo:'rgba(15,18,22,.85)'
     } : {
-      land:'#F7F5EE', block:'#F1EFE6', blockLine:'#E9E6DA',
-      roadMinor:'#FFFFFF', roadMajor:'#F2D488', roadCase:'#FFFFFF',
-      park:'#CFE9C4', parkLine:'#BFE0B2', tree:'#B2DCA2', water:'#BEE1F7', waterLine:'#A7D3EE',
-      label:'rgba(138,134,122,.95)', halo:'rgba(255,253,246,.92)'
+      land:'#F7F6F0', block:'#EFEDE5', blockLine:'#E8E5DA',
+      roadMinor:'#FFFFFF', roadMajor:'#F5DB9A', roadCase:'#FFFFFF',
+      park:'#CFE9C4', parkLine:'#BFE0B2', tree:'#B2DCA2', water:'#BFE2F7', waterLine:'#A7D3EE',
+      label:'rgba(140,136,124,.95)', halo:'rgba(255,253,246,.92)'
     };
 
     ctx.fillStyle = pal.land;
     ctx.fillRect(0, 0, w, h);
 
     var theta = -0.27 + rng() * 0.08;
-    var sx = 58 * k, sy = 52 * k;
+    var sx = (trailKind ? 72 : 52) * k, sy = (trailKind ? 62 : 47) * k;
     ctx.save();
     ctx.translate(w / 2, h / 2);
     ctx.rotate(theta);
 
-    // 街区
+    // 街区与建筑底块
     for (var bi = -8; bi <= 8; bi++){
       for (var bj = -9; bj <= 9; bj++){
-        if (rng() < 0.18) continue;
-        ctx.globalAlpha = 0.55;
+        var bx = bi * sx + 5 * k, by = bj * sy + 5 * k;
+        var bw = sx - 10 * k, bh = sy - 10 * k;
+        ctx.globalAlpha = 0.42;
         ctx.fillStyle = pal.block;
-        rrPath(ctx, bi * sx + 4 * k, bj * sy + 4 * k, sx - 8 * k, sy - 8 * k, 2 * k);
+        rrPath(ctx, bx, by, bw, bh, 1.5 * k);
         ctx.fill();
-        ctx.globalAlpha = 0.5;
-        ctx.strokeStyle = pal.blockLine;
-        ctx.lineWidth = 0.8;
-        ctx.stroke();
+        var bn = 1 + Math.floor(rng() * 3);
+        for (var b = 0; b < bn; b++){
+          var sw = (10 + rng() * 20) * k, sh = (8 + rng() * 15) * k;
+          var px = bx + 4 * k + rng() * Math.max(2 * k, bw - 8 * k - sw);
+          var py = by + 4 * k + rng() * Math.max(2 * k, bh - 8 * k - sh);
+          ctx.globalAlpha = 0.45 + rng() * 0.25;
+          ctx.fillStyle = rng() < 0.55 ? pal.block : pal.blockLine;
+          rrPath(ctx, px, py, sw, sh, 1.2 * k);
+          ctx.fill();
+        }
       }
     }
     ctx.globalAlpha = 1;
 
     // 公园绿地
-    var parkCount = style === 'park' ? 5 : 2;
+    var parkCount = trailKind ? 1 : (style === 'park' ? 5 : 2);
     for (var pI = 0; pI < parkCount; pI++){
       var px = (w * 0.1 + rng() * w * 0.8) - w / 2;
       var py = (h * 0.1 + rng() * h * 0.8) - h / 2;
@@ -149,8 +161,95 @@
       }
     }
 
-    // 水系
-    if (style !== 'park' || rng() < 0.55){
+    // 道路
+    function drawMinor(x1, y1, x2, y2, width){
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+      ctx.strokeStyle = night ? 'rgba(0,0,0,.22)' : 'rgba(226,221,208,.9)';
+      ctx.lineWidth = (width + 1.6) * k; ctx.stroke();
+      ctx.strokeStyle = pal.roadMinor; ctx.lineWidth = width * k; ctx.stroke();
+    }
+    function vlines(major){
+      for (var i = -10; i <= 10; i++){
+        var x = i * sx;
+        var isMajor = !trailKind && (i % 4 === 0);
+        if (isMajor !== major) continue;
+        ctx.beginPath();
+        ctx.moveTo(x, -h * 1.3);
+        ctx.lineTo(x, h * 1.3);
+        if (major){
+          ctx.strokeStyle = pal.roadCase; ctx.lineWidth = 12 * k;
+        } else {
+          ctx.strokeStyle = night ? 'rgba(0,0,0,.22)' : 'rgba(226,221,208,.9)'; ctx.lineWidth = 5.2 * k;
+        }
+        ctx.stroke();
+        if (!major){
+          ctx.strokeStyle = pal.roadMinor; ctx.lineWidth = 3.8 * k; ctx.stroke();
+        }
+      }
+    }
+    function hlines(major){
+      for (var j = -11; j <= 11; j++){
+        var y = j * sy;
+        var isMajor = !trailKind && (j % 4 === 2);
+        if (isMajor !== major) continue;
+        ctx.beginPath();
+        ctx.moveTo(-w * 1.3, y);
+        ctx.lineTo(w * 1.3, y);
+        if (major){
+          ctx.strokeStyle = pal.roadCase; ctx.lineWidth = 12 * k;
+        } else {
+          ctx.strokeStyle = night ? 'rgba(0,0,0,.22)' : 'rgba(226,221,208,.9)'; ctx.lineWidth = 5.2 * k;
+        }
+        ctx.stroke();
+        if (!major){
+          ctx.strokeStyle = pal.roadMinor; ctx.lineWidth = 3.8 * k; ctx.stroke();
+        }
+      }
+    }
+    // 细支路网格
+    if (!trailKind){
+      ctx.globalAlpha = night ? 0.4 : 0.85;
+      for (var ai = -20; ai <= 20; ai++){
+        drawMinor(ai * sx + sx / 2, -h * 1.3, ai * sx + sx / 2, h * 1.3, 1.7);
+      }
+      for (var aj = -22; aj <= 22; aj++){
+        drawMinor(-w * 1.3, aj * sy + sy / 2, w * 1.3, aj * sy + sy / 2, 1.7);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    vlines(false); hlines(false);
+    ctx.lineCap = 'round';
+    vlines(true); hlines(true);
+    // 主干道黄色路面
+    for (var mi = -10; mi <= 10; mi++){
+      if (mi % 4 !== 0) continue;
+      var mx = mi * sx;
+      ctx.beginPath(); ctx.moveTo(mx, -h * 1.3); ctx.lineTo(mx, h * 1.3);
+      ctx.strokeStyle = pal.roadMajor; ctx.lineWidth = 7.4 * k; ctx.stroke();
+    }
+    for (var mj = -11; mj <= 11; mj++){
+      if (mj % 4 !== 2) continue;
+      var my = mj * sy;
+      ctx.beginPath(); ctx.moveTo(-w * 1.3, my); ctx.lineTo(w * 1.3, my);
+      ctx.strokeStyle = pal.roadMajor; ctx.lineWidth = 7.4 * k; ctx.stroke();
+    }
+    // 斜向城市主干道
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.25, h * 1.25);
+    ctx.bezierCurveTo(w * 0.3, h * 0.82, w * 0.58, h * 0.44, w * 1.25, h * 0.08);
+    ctx.strokeStyle = pal.roadCase; ctx.lineWidth = 14 * k; ctx.stroke();
+    ctx.strokeStyle = pal.roadMajor; ctx.lineWidth = 8.6 * k; ctx.stroke();
+    // 斜向支路
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.05, -h * 0.2);
+    ctx.bezierCurveTo(w * 0.3, h * 0.18, w * 0.55, h * 0.42, w * 0.95, h * 1.2);
+    ctx.strokeStyle = night ? 'rgba(0,0,0,.2)' : 'rgba(226,221,208,.85)';
+    ctx.lineWidth = 6 * k; ctx.stroke();
+    ctx.strokeStyle = pal.roadMinor; ctx.lineWidth = 4.4 * k; ctx.stroke();
+
+    // 水系最后绘制，避免道路穿过水面
+    if (!trailKind && (style !== 'park' || rng() < 0.55)){
       var wcx = -w * 0.40, wcy = h * 0.02;
       ctx.fillStyle = pal.water;
       ctx.beginPath();
@@ -172,69 +271,19 @@
       }
       ctx.globalAlpha = 1;
     }
-
-    // 道路
-    function vlines(major){
-      for (var i = -9; i <= 9; i++){
-        var x = i * sx + (rng() - 0.5) * 5 * k;
-        var isMajor = (i % 4 === 0);
-        if (isMajor !== major) continue;
-        ctx.beginPath();
-        ctx.moveTo(x, -h * 1.3);
-        ctx.lineTo(x, h * 1.3);
-        if (major){
-          ctx.strokeStyle = pal.roadCase; ctx.lineWidth = 13 * k;
-        } else {
-          ctx.strokeStyle = night ? 'rgba(0,0,0,.18)' : 'rgba(214,208,192,.55)'; ctx.lineWidth = 7 * k;
-        }
-        ctx.stroke();
-      }
-    }
-    function hlines(major){
-      for (var j = -10; j <= 10; j++){
-        var y = j * sy;
-        var isMajor = (j % 4 === 2);
-        if (isMajor !== major) continue;
-        ctx.beginPath();
-        ctx.moveTo(-w * 1.3, y);
-        ctx.lineTo(w * 1.3, y);
-        if (major){
-          ctx.strokeStyle = pal.roadCase; ctx.lineWidth = 13 * k;
-        } else {
-          ctx.strokeStyle = night ? 'rgba(0,0,0,.18)' : 'rgba(214,208,192,.55)'; ctx.lineWidth = 7 * k;
-        }
-        ctx.stroke();
-      }
-    }
-    vlines(false); hlines(false);
-    ctx.lineCap = 'round';
-    vlines(true); hlines(true);
-    // 主干道黄色路面
-    for (var mi = -9; mi <= 9; mi++){
-      if (mi % 4 !== 0) continue;
-      var mx = mi * sx;
-      ctx.beginPath(); ctx.moveTo(mx, -h * 1.3); ctx.lineTo(mx, h * 1.3);
-      ctx.strokeStyle = pal.roadMajor; ctx.lineWidth = 8.5 * k; ctx.stroke();
-    }
-    for (var mj = -10; mj <= 10; mj++){
-      if (mj % 4 !== 2) continue;
-      var my = mj * sy;
-      ctx.beginPath(); ctx.moveTo(-w * 1.3, my); ctx.lineTo(w * 1.3, my);
-      ctx.strokeStyle = pal.roadMajor; ctx.lineWidth = 8.5 * k; ctx.stroke();
-    }
     ctx.restore();
 
     // 路名
     var labels = kind === 'trail' ? LABELS_LZ : LABELS_BJ;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.font = '500 ' + Math.max(10, 11.3 * k) + 'px ' + FONT;
+    ctx.font = '500 ' + Math.max(10.5, 12.2 * k) + 'px ' + FONT;
     for (var li = 0; li < labels.length; li++){
       var lb = labels[li];
       ctx.save();
       ctx.translate(lb[1] * w, lb[2] * h);
       ctx.rotate(theta + (lb[3] === 'v' ? Math.PI / 2 : 0));
-      ctx.lineWidth = 2.4 * k;
+      ctx.lineWidth = 3 * k;
       ctx.strokeStyle = pal.halo;
       ctx.strokeText(lb[0], 0, 0);
       ctx.fillStyle = pal.label;
@@ -259,7 +308,7 @@
     for (var s = 0; s <= Ns; s++){
       var u = s / Ns;
       pts.push([
-        lerp(startX, stemEnd[0], u) + Math.sin(u * Math.PI * 2.4) * 0.11 * (1 - u * 0.4),
+        lerp(startX, stemEnd[0], u) + Math.sin(u * Math.PI * 2.4) * 0.14 * (1 - u * 0.35) + Math.sin(u * Math.PI * 5.2 + 1.3) * 0.035 * u,
         lerp(startY, stemEnd[1], u)
       ]);
     }
@@ -269,7 +318,7 @@
     var Nl = 280;
     for (var i = 0; i <= Nl; i++){
       var a = startA + i / Nl * Math.PI * 2 * turns;
-      var r = R * (1 + 0.10 * Math.sin(3 * a + p1) + 0.06 * Math.sin(5 * a + p2));
+      var r = R * (1 + 0.15 * Math.sin(3 * a + p1) + 0.09 * Math.sin(5 * a + p2) + 0.035 * Math.sin(9 * a + p1 * 1.7));
       pts.push([cx + Math.cos(a) * r * 1.18, cy + Math.sin(a) * r * 0.84]);
     }
     return pts;
@@ -567,7 +616,7 @@
     trailCtx.clearRect(0, 0, SCREEN_W, SCREEN_H);
     trailCtx.drawImage(getBase(SCREEN_W, SCREEN_H, 'trail'), 0, 0, SCREEN_W, SCREEN_H);
     drawRoute(trailCtx, trailScreen, animProg, {
-      width: 6.6, casingW: 5.8, casing: 'rgba(255,255,255,.95)',
+      width: 7, casingW: 6.2, casing: 'rgba(255,255,255,.95)',
       scale: 1, markers: true, marker: 14, pulse: animating, now: now
     });
   }
@@ -598,7 +647,7 @@
     $('#distNum').textContent = stats.distance.toFixed(2);
     $('#userName').textContent = state.user;
     $('#avatarLetter').textContent = (state.user || 'K').charAt(0);
-    $('#metaText').textContent = fmtDateSlash() + '  ' + state.time + ' - ' + end + '  ' +
+    $('#metaText').textContent = fmtDateSlash() + ' ' + state.time + ' - ' + end + ' ' +
       state.location + ' · ' + state.weather + ' · ' + state.temp + '°C';
     $('#statTime').textContent = fmtClock(stats.duration);
     $('#statPace').textContent = fmtPace(stats.pace);
@@ -683,12 +732,12 @@
     var ctx = cv.getContext('2d');
 
     var bg = ctx.createLinearGradient(0, 0, W, H);
-    bg.addColorStop(0, '#0A0D11');
-    bg.addColorStop(1, '#0C1512');
+    bg.addColorStop(0, '#FFFFFF');
+    bg.addColorStop(1, '#FBFCFA');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, W, H);
     var glow = ctx.createRadialGradient(W * 0.85, -60, 0, W * 0.85, -60, 760);
-    glow.addColorStop(0, 'rgba(34,209,131,.22)');
+    glow.addColorStop(0, 'rgba(34,209,131,.10)');
     glow.addColorStop(1, 'rgba(34,209,131,0)');
     ctx.fillStyle = glow;
     ctx.fillRect(0, 0, W, H);
@@ -706,10 +755,10 @@
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
 
-    ctx.fillStyle = '#F2F8F4';
+    ctx.fillStyle = '#111111';
     ctx.font = '700 46px ' + FONT;
     ctx.fillText('Keep 运动轨迹', 162, 122);
-    ctx.fillStyle = 'rgba(255,255,255,.42)';
+    ctx.fillStyle = 'rgba(0,0,0,.42)';
     ctx.font = '400 23px ' + FONT;
     ctx.fillText(state.user + '  ·  ' + fmtDateSlash() + ' ' + state.time, 162, 158);
 
@@ -727,15 +776,15 @@
     ctx.restore();
     ctx.save();
     rrPath(ctx, mx, my, mw, mh, mr);
-    ctx.strokeStyle = 'rgba(255,255,255,.10)';
+    ctx.strokeStyle = 'rgba(0,0,0,.08)';
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.restore();
 
-    ctx.fillStyle = '#EAF3EE';
+    ctx.fillStyle = '#111111';
     ctx.font = '600 30px ' + FONT;
     ctx.fillText('户外跑步', 64, 952);
-    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.fillStyle = 'rgba(0,0,0,.42)';
     ctx.font = '400 23px ' + FONT;
     ctx.fillText(state.location + '  ·  ' + state.weather + ' ' + state.temp + '°C', 64, 990);
 
@@ -744,21 +793,21 @@
     var values = [stats.distance.toFixed(2), fmtClock(stats.duration), fmtPace(stats.pace)];
     var units = ['公里', '', ''];
     for (var i = 0; i < 3; i++){
-      ctx.fillStyle = 'rgba(255,255,255,.40)';
+      ctx.fillStyle = 'rgba(0,0,0,.40)';
       ctx.font = '500 21px ' + FONT;
       ctx.fillText(labels[i], cols[i], 1052);
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = '#111111';
       ctx.font = '800 58px ' + FONT;
       ctx.fillText(values[i], cols[i], 1120);
       if (units[i]){
         var vw = ctx.measureText(values[i]).width;
-        ctx.fillStyle = 'rgba(255,255,255,.45)';
+        ctx.fillStyle = 'rgba(0,0,0,.42)';
         ctx.font = '600 22px ' + FONT;
         ctx.fillText(units[i], cols[i] + vw + 10, 1120);
       }
     }
 
-    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.strokeStyle = 'rgba(0,0,0,.08)';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.moveTo(64, 1176);
@@ -773,26 +822,26 @@
     ];
     for (var m = 0; m < 4; m++){
       var x = 64 + m * 238, mv = metrics[m];
-      ctx.fillStyle = 'rgba(255,255,255,.40)';
+      ctx.fillStyle = 'rgba(0,0,0,.40)';
       ctx.font = '500 20px ' + FONT;
       ctx.fillText(mv[0], x, 1226);
-      ctx.fillStyle = '#EAF3EE';
+      ctx.fillStyle = '#111111';
       ctx.font = '700 30px ' + FONT;
       ctx.fillText(String(mv[1]), x, 1270);
       if (mv[2]){
         var w2 = ctx.measureText(String(mv[1])).width;
-        ctx.fillStyle = 'rgba(255,255,255,.38)';
+        ctx.fillStyle = 'rgba(0,0,0,.38)';
         ctx.font = '500 17px ' + FONT;
         ctx.fillText(mv[2], x + w2 + 6, 1270);
       }
     }
 
-    ctx.fillStyle = 'rgba(255,255,255,.30)';
+    ctx.fillStyle = 'rgba(0,0,0,.38)';
     ctx.font = '400 19px ' + FONT;
     ctx.fillText(state.user + '  ·  ' + state.location, 64, 1370);
     ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(43,224,140,.75)';
-    ctx.fillText('模拟数据 · 仅供演示', 1016, 1370);
+    ctx.fillStyle = 'rgba(34,170,110,.85)';
+    ctx.fillText('Keep · 自律给我自由', 1016, 1370);
     ctx.textAlign = 'left';
 
     return cv;
