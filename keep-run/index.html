@@ -1,0 +1,1710 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keep 轨迹模拟器 · Keep Trail Studio</title>
+<style>
+  :root{
+    --bg:#0B0E12;
+    --panel:#11151A;
+    --line:#222A32;
+    --text:#EAF0F5;
+    --muted:#8A949E;
+    --green:#22D183;
+    --green-deep:#12B76A;
+    --font: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{min-height:100%}
+  body{
+    background:
+      radial-gradient(1100px 620px at 84% -8%, rgba(34,209,131,.13), transparent 62%),
+      radial-gradient(900px 520px at 4% 108%, rgba(34,209,131,.07), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+  }
+  button, input, select{font-family:inherit}
+  button{cursor:pointer}
+  ::selection{background:rgba(34,209,131,.28)}
+
+  .app{display:grid;grid-template-columns:404px 1fr;min-height:100vh}
+
+  /* ============ 左侧控制面板 ============ */
+  .panel{
+    height:100vh;position:sticky;top:0;display:flex;flex-direction:column;
+    background:linear-gradient(180deg,#0E1216 0%,#0B0E12 100%);
+    border-right:1px solid var(--line);
+  }
+  .brand{display:flex;align-items:center;gap:12px;padding:22px 22px 18px}
+  .brand-mark{
+    width:44px;height:44px;border-radius:14px;flex:none;
+    background:linear-gradient(140deg,#2BE38F,#0FA968);
+    display:grid;place-items:center;
+    color:#04120C;font-weight:900;font-size:23px;letter-spacing:-1px;
+    box-shadow:0 10px 26px rgba(34,209,131,.28);
+  }
+  .brand h1{font-size:16px;font-weight:700;letter-spacing:.2px}
+  .brand p{font-size:9.5px;color:var(--muted);letter-spacing:1.6px;text-transform:uppercase;margin-top:4px}
+  .badge{
+    margin-left:auto;font-size:9.5px;padding:4px 9px;border-radius:999px;flex:none;
+    border:1px solid rgba(34,209,131,.35);color:#5EE3A8;background:rgba(34,209,131,.08);
+    letter-spacing:.6px;
+  }
+
+  .panel-body{flex:1;overflow-y:auto;padding:0 22px 14px;scrollbar-width:thin;scrollbar-color:#2A323B transparent}
+  .panel-body::-webkit-scrollbar{width:6px}
+  .panel-body::-webkit-scrollbar-thumb{background:#2A323B;border-radius:3px}
+  .panel-body::-webkit-scrollbar-track{background:transparent}
+
+  section{padding:16px 0 6px;border-top:1px solid rgba(255,255,255,.055)}
+  section:first-child{border-top:none;padding-top:4px}
+  h2{
+    font-size:10.5px;letter-spacing:1.4px;color:var(--muted);font-weight:600;
+    margin-bottom:12px;display:flex;align-items:center;gap:8px;text-transform:uppercase;
+  }
+  h2 i{font-style:normal;color:#2FE091;font-weight:700;font-size:10px;letter-spacing:1px}
+
+  .chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+  .chip{
+    padding:10px 4px;border-radius:12px;border:1px solid var(--line);
+    background:#141A20;color:#B7C1CA;font-size:12.5px;font-weight:500;
+    transition:border-color .18s, color .18s, background .18s, box-shadow .18s;
+  }
+  .chip:hover{border-color:#33404C;color:#fff}
+  .chip.active{
+    background:linear-gradient(180deg,rgba(34,209,131,.20),rgba(34,209,131,.07));
+    border-color:rgba(34,209,131,.55);color:#5BF0AE;
+    box-shadow:inset 0 0 0 1px rgba(34,209,131,.14);
+  }
+
+  .field-row{margin-bottom:14px}
+  .field-row:last-child{margin-bottom:2px}
+  .field-row label{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#9AA5AF}
+  .field-row label b{color:#EAF0F5;font-size:12.5px;font-variant-numeric:tabular-nums;font-weight:600}
+  input[type=range]{
+    -webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:4px;
+    background:linear-gradient(90deg,#22D183 var(--fill,50%),#242C34 var(--fill,50%));
+    outline:none;margin-top:10px;
+  }
+  input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;width:16px;height:16px;border-radius:50%;
+    background:#fff;border:4px solid #22D183;
+    box-shadow:0 2px 8px rgba(0,0,0,.5);cursor:pointer;
+  }
+  input[type=range]::-moz-range-thumb{
+    width:9px;height:9px;border-radius:50%;background:#fff;border:4px solid #22D183;cursor:pointer;
+  }
+
+  .seed-row{display:flex;gap:8px;margin-top:2px}
+  .seed-row input{
+    flex:1;min-width:0;background:#141A20;border:1px solid var(--line);color:#EAF0F5;
+    border-radius:10px;padding:9px 11px;font-size:12.5px;outline:none;transition:border-color .18s;
+  }
+  .seed-row input:focus{border-color:rgba(34,209,131,.55)}
+
+  .ghost{
+    background:#141A20;border:1px solid var(--line);color:#D3DBE2;border-radius:10px;
+    padding:0 14px;font-size:12.5px;transition:border-color .18s, color .18s, background .18s;
+  }
+  .ghost:hover{border-color:#3A4652;color:#fff}
+  .ghost:active{transform:translateY(1px)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .input{display:flex;flex-direction:column;gap:6px;font-size:10.5px;color:var(--muted)}
+  .input input,.input select{
+    background:#141A20;border:1px solid var(--line);color:#EAF0F5;border-radius:10px;
+    padding:9px 10px;font-size:12.5px;width:100%;outline:none;color-scheme:dark;
+    transition:border-color .18s;
+  }
+  .input input:focus,.input select:focus{border-color:rgba(34,209,131,.55)}
+  .input select{appearance:none;-webkit-appearance:none;background-image:linear-gradient(45deg,transparent 50%,#7A858F 50%),linear-gradient(135deg,#7A858F 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+  .checkbox{display:flex;align-items:center;gap:8px;font-size:12px;color:#9AA5AF;margin-top:12px;cursor:pointer;user-select:none}
+  .checkbox input{accent-color:#22D183;width:14px;height:14px}
+  .hint{font-size:10px;color:#5E6A74;line-height:1.7;margin-top:12px}
+
+  .panel-actions{
+    padding:14px 22px 20px;border-top:1px solid var(--line);background:#0C1014;
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;flex:none;
+  }
+  .primary{
+    grid-column:1/-1;height:44px;border:none;border-radius:12px;
+    background:linear-gradient(120deg,#2BE38F,#10B26C);
+    color:#04130C;font-size:13.5px;font-weight:800;letter-spacing:.6px;
+    box-shadow:0 10px 24px rgba(34,209,131,.24);transition:filter .18s, transform .08s;
+  }
+  .primary:hover{filter:brightness(1.06)}
+  .primary:active{transform:translateY(1px)}
+  .panel-actions .ghost{height:40px;border-radius:11px}
+
+  /* ============ 右侧舞台 ============ */
+  .stage{
+    position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:18px;padding:32px 24px;min-height:100vh;overflow:hidden;
+  }
+  .stage::before{
+    content:'';position:absolute;inset:0;pointer-events:none;
+    background-image:
+      linear-gradient(rgba(255,255,255,.026) 1px,transparent 1px),
+      linear-gradient(90deg,rgba(255,255,255,.026) 1px,transparent 1px);
+    background-size:46px 46px;
+    -webkit-mask-image:radial-gradient(circle at 50% 42%,#000 0%,transparent 74%);
+    mask-image:radial-gradient(circle at 50% 42%,#000 0%,transparent 74%);
+  }
+  .phone-holder{position:relative;isolation:isolate}
+  .phone-holder::before{
+    content:'';position:absolute;inset:-70px;z-index:-1;pointer-events:none;
+    background:radial-gradient(circle,rgba(34,209,131,.17),transparent 66%);
+    filter:blur(26px);
+  }
+  .stage-caption{font-size:10.5px;color:#5E6A74;letter-spacing:1.6px;position:relative;z-index:1}
+
+  .phone{
+    position:absolute;top:0;left:0;width:412px;height:868px;padding:12px;
+    border-radius:58px;transform-origin:top left;
+    background:linear-gradient(160deg,#313A44 0%,#101419 38%,#1C232B 100%);
+    box-shadow:
+      0 50px 110px rgba(0,0,0,.62),
+      0 0 0 1px rgba(255,255,255,.09) inset,
+      0 0 0 2px #05070A;
+  }
+  .phone::before{
+    content:'';position:absolute;right:-3px;top:186px;width:3px;height:74px;border-radius:0 3px 3px 0;
+    background:linear-gradient(180deg,#2B333C,#151A20);
+  }
+  .phone::after{
+    content:'';position:absolute;left:-3px;top:150px;width:3px;height:52px;border-radius:3px 0 0 3px;
+    background:linear-gradient(180deg,#2B333C,#151A20);
+  }
+
+  .screen{
+    position:relative;width:100%;height:100%;border-radius:47px;overflow:hidden;
+    background:#F6F7F5;color:#101418;display:flex;flex-direction:column;
+  }
+  .island{
+    position:absolute;top:11px;left:50%;transform:translateX(-50%);
+    width:106px;height:28px;border-radius:16px;background:#050607;z-index:20;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.05);
+  }
+  .island::after{
+    content:'';position:absolute;right:11px;top:50%;transform:translateY(-50%);
+    width:7px;height:7px;border-radius:50%;background:#0F1A22;
+    box-shadow:inset 0 0 0 1px rgba(90,190,255,.35);
+  }
+
+  .statusbar{
+    height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:6px 22px 0;font-size:12.5px;font-weight:600;color:#111;
+  }
+  .sb-icons{display:flex;align-items:center;gap:5px}
+  .sb-icons svg{display:block}
+
+  .navbar{
+    height:42px;flex:none;display:flex;align-items:center;justify-content:space-between;
+    padding:0 14px;
+  }
+  .navbar .nav-title{font-size:14px;font-weight:600;color:#1C211E}
+  .icon-btn{
+    width:30px;height:30px;border-radius:50%;border:none;background:transparent;color:#20261F;
+    display:grid;place-items:center;
+  }
+  .icon-btn:hover{background:#EDEFEC}
+
+  .screen-scroll{
+    flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;
+    padding-bottom:6px;
+  }
+  .screen-scroll::-webkit-scrollbar{display:none}
+
+  .map-card{
+    position:relative;height:240px;margin:2px 16px 0;border-radius:20px;overflow:hidden;
+    background:#E9ECEA;box-shadow:0 8px 20px rgba(16,24,20,.10);
+  }
+  .map-card canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  .map-chip{
+    position:absolute;top:11px;display:flex;align-items:center;gap:5px;
+    padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.84);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    font-size:10.5px;color:#26312B;font-weight:500;
+    box-shadow:0 4px 12px rgba(0,0,0,.12);
+  }
+  .map-chip.left{left:11px}
+  .map-chip.right{right:11px}
+  .map-attr{
+    position:absolute;right:8px;bottom:6px;font-size:8px;letter-spacing:.3px;
+    color:rgba(60,80,70,.5);
+  }
+
+  .headline{display:flex;justify-content:space-between;align-items:flex-start;padding:15px 20px 2px}
+  .act-name{font-size:20px;font-weight:700;letter-spacing:.2px;color:#111614}
+  .act-meta{display:flex;align-items:center;gap:4px;color:#7C8780;font-size:11px;margin-top:6px}
+  .act-meta svg{flex:none}
+  .act-date{font-size:11px;color:#8B958F;text-align:right;line-height:1.55;font-weight:500}
+  .act-date span{color:#A6AFAA;font-weight:400}
+
+  .hero{display:flex;align-items:flex-end;padding:8px 20px 14px;gap:18px}
+  .hero-num{display:flex;align-items:baseline;gap:4px}
+  .hero-num span{
+    font-size:46px;font-weight:800;letter-spacing:-1.8px;line-height:1;
+    font-variant-numeric:tabular-nums;
+  }
+  .hero-num em{font-style:normal;font-size:12.5px;color:#7E8983;font-weight:600}
+  .hero-label{font-size:10.5px;color:#8A948E;margin-top:5px}
+  .hero-side{display:flex;gap:22px;margin-left:auto;padding-bottom:3px}
+  .hero-side>div{display:flex;flex-direction:column;gap:4px}
+  .hero-side b{font-size:16.5px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+  .hero-side span{font-size:10px;color:#8A948E}
+
+  .metrics{
+    margin:0 16px;display:grid;grid-template-columns:repeat(4,1fr);
+    background:#F0F2EF;border-radius:14px;padding:12px 0;
+  }
+  .metric{text-align:center;position:relative}
+  .metric b{display:block;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+  .metric b em{font-style:normal;font-size:8.5px;color:#8A948E;margin-left:1px;font-weight:500}
+  .metric span{font-size:9px;color:#8A948E;margin-top:3px;display:block}
+  .metric+.metric::before{
+    content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);
+    width:1px;height:20px;background:#E1E5E1;
+  }
+
+  .splits-card{margin:11px 16px 0;background:#F0F2EF;border-radius:14px;padding:12px 14px}
+  .splits-head{display:flex;justify-content:space-between;align-items:center;font-size:11.5px;font-weight:600;margin-bottom:9px}
+  .pill{
+    font-size:9px;color:#0E9F63;background:rgba(34,209,131,.15);padding:3px 8px;
+    border-radius:999px;font-weight:600;letter-spacing:.2px;
+  }
+  .splits{max-height:128px;overflow-y:auto;scrollbar-width:none;display:flex;flex-direction:column;gap:5px;padding-right:2px}
+  .splits::-webkit-scrollbar{display:none}
+  .split{
+    display:grid;grid-template-columns:18px 1fr 44px;gap:8px;align-items:center;
+    font-size:9px;color:#8B958F;font-variant-numeric:tabular-nums;
+  }
+  .split .bar{height:6px;border-radius:4px;background:#E2E6E2;overflow:hidden}
+  .split .bar i{display:block;height:100%;border-radius:4px;background:#B9C4BD;transition:width .45s ease}
+  .split.fast{color:#0E9F63;font-weight:600}
+  .split.fast .bar i{background:linear-gradient(90deg,#2BD88A,#12B76A)}
+
+  .screen-foot{text-align:center;font-size:8.5px;color:#AFB7B2;letter-spacing:.5px;padding:10px 0 4px}
+
+  .bottom-bar{
+    flex:none;height:62px;display:flex;align-items:center;gap:10px;
+    padding:0 18px;border-top:1px solid #ECEFEC;background:#FFFFFF;
+  }
+  .bb-left{display:flex;align-items:center;gap:7px;font-size:11.5px;color:#5E6A64;font-weight:500}
+  .bb-left .k{
+    width:24px;height:24px;border-radius:8px;background:#101614;color:#2BE08C;
+    display:grid;place-items:center;font-weight:900;font-size:13px;
+  }
+  .share-btn{
+    margin-left:auto;height:36px;padding:0 26px;border-radius:999px;border:none;
+    background:linear-gradient(120deg,#2BE08C,#10B26C);color:#04130C;
+    font-size:12.5px;font-weight:700;letter-spacing:.5px;
+  }
+
+  .toast{
+    position:fixed;left:50%;bottom:34px;transform:translate(-50%,18px);
+    background:#101614;color:#DFF7EA;border:1px solid rgba(34,209,131,.35);
+    padding:10px 18px;border-radius:999px;font-size:12px;opacity:0;pointer-events:none;
+    transition:opacity .28s, transform .28s;z-index:99;box-shadow:0 16px 40px rgba(0,0,0,.5);
+  }
+  .toast.show{opacity:1;transform:translate(-50%,0)}
+
+  .modal{
+    position:fixed;inset:0;z-index:120;display:none;place-items:center;padding:26px;
+    background:rgba(4,7,9,.72);-webkit-backdrop-filter:blur(9px);backdrop-filter:blur(9px);
+  }
+  .modal.show{display:grid}
+  .modal-card{
+    width:min(560px,100%);max-height:92vh;display:flex;flex-direction:column;gap:12px;
+    background:#10151A;border:1px solid #26303A;border-radius:20px;padding:14px;
+    box-shadow:0 40px 100px rgba(0,0,0,.6);
+  }
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;padding:2px 4px;
+    font-size:12.5px;color:#C9D3DB;font-weight:600;letter-spacing:.4px;
+  }
+  .modal-close{
+    width:26px;height:26px;border-radius:50%;border:none;background:#1B222A;color:#97A3AD;
+    font-size:15px;line-height:1;display:grid;place-items:center;
+  }
+  .modal-close:hover{background:#232C36;color:#fff}
+  .modal-body{
+    flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
+    background:#0A0E12;border-radius:12px;overflow:hidden;
+  }
+  .modal-body img{display:block;max-width:100%;max-height:64vh;object-fit:contain}
+  .modal-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .modal-foot .ghost,.modal-foot .primary{height:42px;border-radius:11px;font-size:13px}
+  .modal-foot .primary{grid-column:auto}
+
+  @media (max-width: 980px){
+    .app{grid-template-columns:1fr}
+    .panel{position:static;height:auto;border-right:none;border-bottom:1px solid var(--line)}
+    .panel-body{overflow:visible;max-height:none}
+    .stage{min-height:auto;padding:26px 16px 46px}
+  }
+  @media (max-width: 460px){
+    .chips{grid-template-columns:repeat(2,1fr)}
+    .grid2{gap:8px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="panel">
+    <div class="brand">
+      <div class="brand-mark">K</div>
+      <div>
+        <h1>Keep 轨迹模拟器</h1>
+        <p>Keep Trail Studio</p>
+      </div>
+      <span class="badge">DEMO</span>
+    </div>
+
+    <div class="panel-body">
+      <section>
+        <h2><i>01</i>轨迹形态</h2>
+        <div class="chips" id="shapeChips">
+          <button class="chip" data-v="loop">环形</button>
+          <button class="chip" data-v="outback">折返</button>
+          <button class="chip" data-v="track">操场</button>
+          <button class="chip active" data-v="city">街区</button>
+        </div>
+      </section>
+
+      <section>
+        <h2><i>02</i>运动参数</h2>
+        <div class="field-row">
+          <label>总距离 <b id="distLabel">5.0 km</b></label>
+          <input type="range" id="distRange" min="1" max="21" step="0.5" value="5">
+        </div>
+        <div class="field-row">
+          <label>平均配速 <b id="paceLabel">5'42"</b></label>
+          <input type="range" id="paceRange" min="210" max="450" step="5" value="342">
+        </div>
+        <div class="seed-row">
+          <input id="seedInput" value="keep-trail-2026" spellcheck="false" aria-label="随机种子">
+          <button class="ghost" id="diceBtn" title="换一个随机种子">随机</button>
+        </div>
+      </section>
+
+      <section>
+        <h2><i>03</i>地图风格</h2>
+        <div class="chips" id="styleChips">
+          <button class="chip active" data-v="city">城市</button>
+          <button class="chip" data-v="park">公园</button>
+          <button class="chip" data-v="river">滨江</button>
+          <button class="chip" data-v="night">夜晚</button>
+        </div>
+        <label class="checkbox"><input type="checkbox" id="animToggle" checked> 生成时播放轨迹动画</label>
+      </section>
+
+      <section>
+        <h2><i>04</i>记录信息</h2>
+        <div class="grid2">
+          <label class="input"><span>用户名</span><input id="userInput" value="Keep User" maxlength="16"></label>
+          <label class="input"><span>地点</span><input id="locInput" value="广州市 · 天河公园" maxlength="22"></label>
+          <label class="input"><span>天气</span>
+            <select id="weatherSelect">
+              <option>多云</option>
+              <option>晴</option>
+              <option>阴</option>
+              <option>小雨</option>
+              <option>微风</option>
+            </select>
+          </label>
+          <label class="input"><span>温度</span><input id="tempInput" type="number" value="20" min="-10" max="45"></label>
+          <label class="input"><span>日期</span><input id="dateInput" type="date"></label>
+          <label class="input"><span>开始时间</span><input id="timeInput" type="time" value="08:32"></label>
+        </div>
+        <div class="hint">所有轨迹与数据均在浏览器本地模拟生成，仅用于界面演示，与真实运动无关。</div>
+      </section>
+    </div>
+
+    <div class="panel-actions">
+      <button class="primary" id="regenBtn">生成一条新轨迹</button>
+      <button class="ghost" id="replayBtn">重播动画</button>
+      <button class="ghost" id="exportBtn">导出图片</button>
+    </div>
+  </aside>
+
+  <main class="stage">
+    <div class="phone-holder" id="phoneHolder">
+      <div class="phone" id="phone">
+        <div class="screen">
+          <div class="island"></div>
+
+          <div class="statusbar">
+            <span>9:41</span>
+            <div class="sb-icons">
+              <svg width="15" height="10" viewBox="0 0 15 10" fill="none" aria-hidden="true"><rect x="0" y="6" width="2.4" height="4" rx=".7" fill="#111"/><rect x="4" y="4" width="2.4" height="6" rx=".7" fill="#111"/><rect x="8" y="2" width="2.4" height="8" rx=".7" fill="#111"/><rect x="12" y="0" width="2.4" height="10" rx=".7" fill="#111"/></svg>
+              <svg width="15" height="11" viewBox="0 0 16 12" fill="none" aria-hidden="true"><path d="M8 10.6 1.2 4.2a9.6 9.6 0 0 1 13.6 0L8 10.6Z" fill="#111"/></svg>
+              <svg width="23" height="11" viewBox="0 0 25 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="3" stroke="#111" stroke-opacity=".38"/><rect x="2" y="2" width="16.5" height="8" rx="1.8" fill="#111"/><path d="M23 4v4a2.2 2.2 0 0 0 0-4Z" fill="#111" fill-opacity=".45"/></svg>
+            </div>
+          </div>
+
+          <div class="navbar">
+            <button class="icon-btn" aria-label="返回">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+            <span class="nav-title">运动记录</span>
+            <button class="icon-btn" aria-label="分享">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></svg>
+            </button>
+          </div>
+
+          <div class="screen-scroll" id="screenScroll">
+            <div class="map-card">
+              <canvas id="mapCanvas"></canvas>
+              <div class="map-chip left">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M8 3v4M16 3v4M3 11h18"/></svg>
+                <span id="chipDate">11月22日 08:32</span>
+              </div>
+              <div class="map-chip right">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 19.5a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.5 1.2A3.9 3.9 0 0 0 7 19.5"/></svg>
+                <span id="chipWeather">多云 20°</span>
+              </div>
+              <div class="map-attr">模拟地图</div>
+            </div>
+
+            <div class="headline">
+              <div>
+                <div class="act-name">户外跑步</div>
+                <div class="act-meta">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="2.6"/></svg>
+                  <span id="locText">广州市 · 天河公园</span>
+                </div>
+              </div>
+              <div class="act-date" id="dateText">11月22日<br><span>周六</span></div>
+            </div>
+
+            <div class="hero">
+              <div>
+                <div class="hero-num"><span id="distVal">5.02</span><em>km</em></div>
+                <div class="hero-label">距离</div>
+              </div>
+              <div class="hero-side">
+                <div><b id="timeVal">28:38</b><span>用时</span></div>
+                <div><b id="paceVal">5'42"</b><span>平均配速</span></div>
+              </div>
+            </div>
+
+            <div class="metrics">
+              <div class="metric"><b id="calVal">312<em>千卡</em></b><span>卡路里</span></div>
+              <div class="metric"><b id="cadVal">174<em>步/分</em></b><span>平均步频</span></div>
+              <div class="metric"><b id="eleVal">18<em>米</em></b><span>累计爬升</span></div>
+              <div class="metric"><b id="hrVal">152<em>次/分</em></b><span>平均心率</span></div>
+            </div>
+
+            <div class="splits-card">
+              <div class="splits-head">
+                <span>每公里配速</span>
+                <span class="pill" id="fastestPill">最快 5'28"</span>
+              </div>
+              <div class="splits" id="splits"></div>
+            </div>
+
+            <div class="screen-foot">数据为模拟生成 · 仅供界面演示</div>
+          </div>
+
+          <div class="bottom-bar">
+            <div class="bb-left"><span class="k">K</span>Keep 运动</div>
+            <button class="share-btn">分享</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p class="stage-caption">实时预览 · 点击生成即可换一条轨迹</p>
+  </main>
+</div>
+
+<div class="toast" id="toast">已导出轨迹图片</div>
+
+<div class="modal" id="posterModal">
+  <div class="modal-card">
+    <div class="modal-head">
+      <span>分享图预览 · 1080 × 1440</span>
+      <button class="modal-close" id="modalClose" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body"><img id="posterImg" alt="运动轨迹分享图预览"></div>
+    <div class="modal-foot">
+      <button class="ghost" id="modalCancel">关闭</button>
+      <button class="primary" id="modalDownload">下载 PNG</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ============================ 基础工具 ============================ */
+  var FONT = '"PingFang SC","SF Pro Display","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,sans-serif';
+  var PHONE_W = 412, PHONE_H = 868;
+
+  function $(s, r){ return (r || document).querySelector(s); }
+  function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+  function lerp(a, b, t){ return a + (b - a) * t; }
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  function hashSeed(str){
+    var h = 2166136261;
+    str = String(str);
+    for (var i = 0; i < str.length; i++){
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+  function mulberry32(a){
+    return function(){
+      a |= 0; a = (a + 0x6D2B79F5) | 0;
+      var t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function withAlpha(hex, a){
+    if (typeof hex !== 'string' || hex.charAt(0) !== '#') return hex;
+    var n = parseInt(hex.slice(1), 16);
+    return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+  }
+  function tint(hex, amt){
+    if (typeof hex !== 'string' || hex.charAt(0) !== '#') return hex;
+    var n = parseInt(hex.slice(1), 16);
+    var r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    var f = function(v){ return clamp(Math.round(v + 255 * amt), 0, 255); };
+    return 'rgb(' + f(r) + ',' + f(g) + ',' + f(b) + ')';
+  }
+  function round2(v){ return Math.round(v * 100) / 100; }
+  function fmtTime(sec){
+    sec = Math.max(0, Math.round(sec));
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    var mm = String(m).padStart(2, '0'), ss = String(s).padStart(2, '0');
+    return h > 0 ? h + ':' + mm + ':' + ss : mm + ':' + ss;
+  }
+  function fmtPace(sec){
+    sec = Math.max(0, Math.round(sec));
+    var m = Math.floor(sec / 60), s = sec % 60;
+    return m + "'" + String(s).padStart(2, '0') + '"';
+  }
+  function fmtNum(n){
+    return Math.round(n).toLocaleString('en-US');
+  }
+  function todayStr(){
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function parseDate(str){
+    var p = (str || todayStr()).split('-').map(Number);
+    return new Date(p[0], (p[1] || 1) - 1, p[2] || 1);
+  }
+  function rrPath(ctx, x, y, w, h, r){
+    r = Math.min(r, w / 2, h / 2);
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  /* ============================ 地图配色 ============================ */
+  var PALETTES = {
+    city: {
+      road:'#FFFFFF', land:'#F0F3F1', block:'#E2E7E5', blockTop:'#EBEFED',
+      blockLine:'#D2D8D6', park:'#D7EBD8', tree:'#A6D3AC', water:'#C9E3F2',
+      waterLine:'#B4D6E8', route:'#18C17A', casing:'#FFFFFF', markerText:'#0F9F63',
+      label:'rgba(90,110,100,.42)', glow:false
+    },
+    park: {
+      road:'#FBF8F1', land:'#F2EFE5', block:'#E6E2D5', blockTop:'#EFEBDF',
+      blockLine:'#D8D3C2', park:'#CDE7C2', tree:'#99C98E', water:'#C7E1E9',
+      waterLine:'#B2D3DE', route:'#16B873', casing:'#FBF8F1', markerText:'#0F9F63',
+      label:'rgba(100,110,90,.42)', glow:false
+    },
+    river: {
+      road:'#FFFFFF', land:'#EFF2F1', block:'#E1E6E4', blockTop:'#EAEEEC',
+      blockLine:'#D0D6D3', park:'#D5EAD5', tree:'#A3D0A8', water:'#BEDDF1',
+      waterLine:'#A8CFE6', route:'#0FB981', casing:'#FFFFFF', markerText:'#0A9C6C',
+      label:'rgba(80,105,115,.42)', glow:false
+    },
+    night: {
+      road:'#232A32', land:'#1E242B', block:'#2A313A', blockTop:'#313944',
+      blockLine:'#353D47', park:'#22322B', tree:'#2E5741', water:'#172C36',
+      waterLine:'#1F3A46', route:'#2BE08C', casing:'#0E1318', markerText:'#0B3B26',
+      label:'rgba(150,170,165,.34)', glow:true
+    }
+  };
+
+  /* ============================ 轨迹生成 ============================ */
+  function genLoop(rng){
+    var pts = [], N = 200;
+    var base = 0.72 + rng() * 0.07;
+    var squash = 0.70 + rng() * 0.24;
+    var terms = [];
+    var count = 3 + Math.floor(rng() * 2);
+    for (var i = 0; i < count; i++){
+      terms.push({
+        k: 2 + i + (rng() < 0.4 ? 1 : 0),
+        a: (0.035 + rng() * 0.075) / (i + 1),
+        p: rng() * Math.PI * 2
+      });
+    }
+    for (var j = 0; j < N; j++){
+      var t = j / N * Math.PI * 2;
+      var r = base;
+      for (var k = 0; k < terms.length; k++){
+        r += terms[k].a * Math.cos(terms[k].k * t + terms[k].p);
+      }
+      pts.push([r * Math.cos(t) * 1.0, r * Math.sin(t) * squash]);
+    }
+    return pts;
+  }
+
+  function genOutBack(rng){
+    var forward = [], N = 120;
+    var amp = 0.10 + rng() * 0.13;
+    var freq = 1.1 + rng() * 1.6;
+    var phase = rng() * Math.PI * 2;
+    var bend = 0.12 + rng() * 0.22;
+    for (var i = 0; i <= N; i++){
+      var u = i / N;
+      var x = -0.9 + u * 1.8;
+      var y = Math.sin(u * Math.PI * freq + phase) * amp
+            + Math.sin(u * Math.PI) * bend
+            + Math.sin(u * Math.PI * 2) * 0.03;
+      forward.push([x, y]);
+    }
+    var back = [];
+    for (var j = forward.length - 1; j >= 0; j--){
+      var off = 0.055 + 0.018 * Math.sin(j * 0.23);
+      back.push([forward[j][0] + 0.01, forward[j][1] + off]);
+    }
+    return forward.concat(back);
+  }
+
+  function genTrack(rng){
+    var pts = [], laps = 3 + Math.floor(rng() * 2);
+    var per = 200;
+    var a = 0.80, b = 0.50, e = 3.4;
+    var expo = 2 / e;
+    for (var l = 0; l < laps; l++){
+      var off = l * 0.022;
+      for (var i = 0; i < per; i++){
+        var t = i / per * Math.PI * 2;
+        var ct = Math.cos(t), st = Math.sin(t);
+        var x = (a + off) * Math.sign(ct) * Math.pow(Math.abs(ct), expo);
+        var y = (b + off) * Math.sign(st) * Math.pow(Math.abs(st), expo);
+        pts.push([x, y]);
+      }
+    }
+    return pts;
+  }
+
+  function genCity(rng){
+    var n = 5 + Math.floor(rng() * 4);
+    var g = 0.22;
+    var baseR = 0.58 + rng() * 0.24;
+    var startA = rng() * Math.PI * 2;
+    var corners = [];
+    for (var i = 0; i < n; i++){
+      var a = startA + i / n * Math.PI * 2 + (rng() - 0.5) * 0.36;
+      var r = baseR * (0.78 + rng() * 0.42);
+      var x = Math.round(Math.cos(a) * r / g) * g;
+      var y = Math.round(Math.sin(a) * r * 0.86 / g) * g;
+      corners.push([x, y]);
+    }
+    var pts = [];
+    for (var j = 0; j < corners.length; j++){
+      var c1 = corners[j], c2 = corners[(j + 1) % corners.length];
+      pts.push([c1[0], c1[1]]);
+      var corner = rng() < 0.5 ? [c2[0], c1[1]] : [c1[0], c2[1]];
+      var prev = pts[pts.length - 1];
+      if (Math.abs(corner[0] - prev[0]) > 1e-6 || Math.abs(corner[1] - prev[1]) > 1e-6){
+        pts.push(corner);
+      }
+    }
+    // 去掉连续重复点
+    var clean = [];
+    for (var m = 0; m < pts.length; m++){
+      var p = pts[m];
+      var q = clean[clean.length - 1];
+      if (!q || Math.abs(p[0] - q[0]) > 1e-6 || Math.abs(p[1] - q[1]) > 1e-6) clean.push(p);
+    }
+    return clean;
+  }
+
+  function catmullRom(pts, closed){
+    if (pts.length < 3) return pts.slice();
+    var P;
+    if (closed){
+      P = [pts[pts.length - 1]].concat(pts, [pts[0], pts[1]]);
+    } else {
+      P = [pts[0]].concat(pts, [pts[pts.length - 1]]);
+    }
+    var out = [];
+    var segs = closed ? pts.length : pts.length - 1;
+    var steps = 8;
+    for (var i = 0; i < segs; i++){
+      var p0 = P[i], p1 = P[i + 1], p2 = P[i + 2], p3 = P[i + 3];
+      for (var j = 0; j < steps; j++){
+        var t = j / steps, t2 = t * t, t3 = t2 * t;
+        var x = 0.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t +
+          (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 +
+          (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3);
+        var y = 0.5 * (2 * p1[1] + (-p0[1] + p2[1]) * t +
+          (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 +
+          (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3);
+        out.push([x, y]);
+      }
+    }
+    out.push(closed ? out[0].slice() : pts[pts.length - 1].slice());
+    return out;
+  }
+
+  function buildRoute(shape, rng){
+    var raw;
+    if (shape === 'loop') raw = genLoop(rng);
+    else if (shape === 'outback') raw = genOutBack(rng);
+    else if (shape === 'track') raw = genTrack(rng);
+    else raw = genCity(rng);
+    var closed = (shape === 'loop' || shape === 'city');
+    return catmullRom(raw, closed);
+  }
+
+  function fitPoints(pts, w, h, pad){
+    var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+    for (var i = 0; i < pts.length; i++){
+      var p = pts[i];
+      if (p[0] < minX) minX = p[0];
+      if (p[0] > maxX) maxX = p[0];
+      if (p[1] < minY) minY = p[1];
+      if (p[1] > maxY) maxY = p[1];
+    }
+    var bw = Math.max(1e-6, maxX - minX), bh = Math.max(1e-6, maxY - minY);
+    var s = Math.min((w - pad * 2) / bw, (h - pad * 2) / bh);
+    var cx = (minX + maxX) / 2, cy = (minY + maxY) / 2;
+    var out = [];
+    for (var j = 0; j < pts.length; j++){
+      out.push([w / 2 + (pts[j][0] - cx) * s, h / 2 + (pts[j][1] - cy) * s]);
+    }
+    return out;
+  }
+
+  function cumulative(pts){
+    var L = [0];
+    for (var i = 1; i < pts.length; i++){
+      L.push(L[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
+    }
+    return L;
+  }
+
+  function makeScreen(norm, w, h, pad){
+    var pts = fitPoints(norm, w, h, pad);
+    var L = cumulative(pts);
+    return { pts: pts, L: L, total: L[L.length - 1] || 1 };
+  }
+
+  /* ============================ 地图底图 ============================ */
+  function drawBase(ctx, w, h, style, seed){
+    var pal = PALETTES[style] || PALETTES.city;
+    var rng = mulberry32(hashSeed(seed + '|' + style + '|map'));
+    var scale = w / 358;
+
+    ctx.fillStyle = pal.road;
+    ctx.fillRect(0, 0, w, h);
+
+    // 底噪
+    for (var i = 0; i < 5; i++){
+      ctx.globalAlpha = 0.35 + rng() * 0.2;
+      ctx.fillStyle = pal.land;
+      ctx.beginPath();
+      ctx.ellipse(rng() * w, rng() * h, w * (0.16 + rng() * 0.2), h * (0.12 + rng() * 0.2), rng() * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    // 水系
+    var hasWater = style !== 'park' || rng() < 0.4;
+    var riverBase = h * (0.48 + rng() * 0.24);
+    var riverAmp = h * (0.05 + rng() * 0.08);
+    var riverFreq = 0.9 + rng() * 1.2;
+    var riverPhase = rng() * Math.PI * 2;
+    var riverW = h * (0.09 + rng() * 0.055);
+    var riverY = function(x){
+      return riverBase + Math.sin(x / w * Math.PI * riverFreq + riverPhase) * riverAmp;
+    };
+    if (hasWater){
+      ctx.beginPath();
+      for (var x = 0; x <= w; x += 4) ctx.lineTo(x, riverY(x) - riverW / 2);
+      for (var x2 = w; x2 >= 0; x2 -= 4) ctx.lineTo(x2, riverY(x2) + riverW / 2);
+      ctx.closePath();
+      ctx.fillStyle = pal.water;
+      ctx.fill();
+      ctx.strokeStyle = pal.waterLine;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      // 水面波光
+      ctx.globalAlpha = 0.35;
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 0.8 * scale;
+      for (var b = 0; b < 4; b++){
+        var bx = w * (0.12 + rng() * 0.7);
+        var by = riverY(bx) + (rng() - 0.5) * riverW * 0.5;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + 16 * scale, by + 1);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    // 街区块
+    var cell = Math.max(46, w / 6.2);
+    var gap = cell * (0.15 + rng() * 0.04);
+    var cols = Math.ceil(w / cell) + 1;
+    var rows = Math.ceil(h / cell) + 1;
+
+    var parkSet = {};
+    var clusters = 1 + Math.floor(rng() * 2);
+    for (var c = 0; c < clusters; c++){
+      var pr = Math.floor(rng() * rows), pc = Math.floor(rng() * cols);
+      var pw = 1 + Math.floor(rng() * 2), ph = 1 + Math.floor(rng() * 2);
+      for (var r0 = pr; r0 < pr + ph; r0++){
+        for (var c0 = pc; c0 < pc + pw; c0++) parkSet[r0 + ',' + c0] = true;
+      }
+    }
+
+    var parkLabel = null;
+
+    for (var r = 0; r < rows; r++){
+      for (var c1 = 0; c1 < cols; c1++){
+        var baseX = c1 * cell, baseY = r * cell;
+        var cx = baseX + cell / 2, cy = baseY + cell / 2;
+        if (hasWater && Math.abs(cy - riverY(cx)) < riverW / 2 + cell * 0.18) continue;
+
+        var isPark = !!parkSet[r + ',' + c1];
+        var bw = cell - gap + (rng() - 0.5) * cell * 0.05;
+        var bh2 = cell - gap + (rng() - 0.5) * cell * 0.05;
+        var bx = baseX + (cell - bw) / 2;
+        var by = baseY + (cell - bh2) / 2;
+
+        rrPath(ctx, bx, by, bw, bh2, 3 * scale);
+        if (isPark){
+          ctx.fillStyle = tint(pal.park, (rng() - 0.5) * 0.035);
+          ctx.fill();
+          if (!parkLabel) parkLabel = [cx, cy];
+          var trees = 4 + Math.floor(rng() * 4);
+          for (var t = 0; t < trees; t++){
+            var tx = bx + 4 * scale + rng() * Math.max(1, bw - 8 * scale);
+            var ty = by + 4 * scale + rng() * Math.max(1, bh2 - 8 * scale);
+            ctx.fillStyle = pal.tree;
+            ctx.beginPath();
+            ctx.arc(tx, ty, (1.1 + rng() * 1.7) * scale, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          ctx.fillStyle = tint(pal.block, (rng() - 0.5) * 0.045);
+          ctx.fill();
+          ctx.strokeStyle = pal.blockLine;
+          ctx.lineWidth = 0.7;
+          ctx.stroke();
+          // 屋顶
+          var inset = Math.min(bw, bh2) * 0.2;
+          rrPath(ctx, bx + inset, by + inset, Math.max(1, bw - inset * 2), Math.max(1, bh2 - inset * 2), 2 * scale);
+          ctx.fillStyle = withAlpha(pal.blockTop, 0.9);
+          ctx.fill();
+          if (style === 'night'){
+            var win = 1 + Math.floor(rng() * 3);
+            for (var wI = 0; wI < win; wI++){
+              ctx.fillStyle = 'rgba(255,214,138,' + (0.45 + rng() * 0.35).toFixed(2) + ')';
+              ctx.fillRect(
+                bx + 4 * scale + rng() * Math.max(1, bw - 8 * scale),
+                by + 4 * scale + rng() * Math.max(1, bh2 - 8 * scale),
+                1.5 * scale, 1.5 * scale
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // 地图注记
+    ctx.font = '500 ' + Math.max(8, 8.5 * scale) + 'px ' + FONT;
+    ctx.fillStyle = pal.label;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    if (parkLabel) ctx.fillText('城市绿地', parkLabel[0] - 18 * scale, parkLabel[1]);
+    if (hasWater){
+      ctx.fillText('滨水步道', w * 0.60, riverY(w * 0.60) + riverW * 0.16);
+    }
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  /* ============================ 轨迹绘制 ============================ */
+  function strokePolyline(ctx, pts){
+    if (!pts || pts.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.stroke();
+  }
+
+  function sliceHead(pts, L, target){
+    var head = [];
+    for (var i = 0; i < pts.length; i++){
+      if (L[i] <= target) head.push(pts[i]);
+      else break;
+    }
+    var idx = head.length - 1;
+    if (idx >= 0 && idx < pts.length - 1){
+      var segLen = L[idx + 1] - L[idx] || 1;
+      var t = clamp((target - L[idx]) / segLen, 0, 1);
+      head.push([
+        lerp(pts[idx][0], pts[idx + 1][0], t),
+        lerp(pts[idx][1], pts[idx + 1][1], t)
+      ]);
+    }
+    return head;
+  }
+
+  function drawRouteLayer(ctx, screen, progress, opts){
+    var pal = opts.pal;
+    var scale = opts.scale;
+    var distance = opts.distance;
+    var now = opts.now || 0;
+    var showPulse = opts.showPulse !== false;
+    var pts = screen.pts, L = screen.L;
+    var target = screen.total * clamp(progress, 0, 1);
+    var head = sliceHead(pts, L, target);
+
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    // 白色描边
+    ctx.globalAlpha = 0.92;
+    ctx.strokeStyle = pal.casing;
+    ctx.lineWidth = 8.5 * scale;
+    strokePolyline(ctx, head);
+    ctx.globalAlpha = 1;
+
+    // 主轨迹
+    ctx.save();
+    if (pal.glow){
+      ctx.shadowColor = withAlpha(pal.route, 0.85);
+      ctx.shadowBlur = 9 * scale;
+    }
+    ctx.strokeStyle = pal.route;
+    ctx.lineWidth = 4.6 * scale;
+    strokePolyline(ctx, head);
+    ctx.restore();
+
+    if (head.length < 2) return;
+
+    // 每公里标记
+    var markerStep = distance <= 8 ? 1 : distance <= 16 ? 2 : distance <= 30 ? 3 : 5;
+    var markerR = 7.6 * scale;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = '700 ' + (8.2 * scale).toFixed(1) + 'px ' + FONT;
+    for (var km = markerStep; km < distance; km += markerStep){
+      var frac = km / distance;
+      if (frac > progress + 1e-6) continue;
+      var at = findAt(pts, L, frac * screen.total);
+      if (!at) continue;
+      ctx.beginPath();
+      ctx.arc(at[0], at[1], markerR, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.strokeStyle = pal.route;
+      ctx.lineWidth = 1.5 * scale;
+      ctx.stroke();
+      ctx.fillStyle = pal.markerText;
+      ctx.fillText(String(km), at[0], at[1] + 0.4 * scale);
+    }
+    ctx.textBaseline = 'alphabetic';
+
+    // 起点
+    var start = pts[0];
+    ctx.beginPath();
+    ctx.arc(start[0], start[1], 6.8 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    ctx.strokeStyle = pal.route;
+    ctx.lineWidth = 2.2 * scale;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(start[0], start[1], 2.6 * scale, 0, Math.PI * 2);
+    ctx.fillStyle = pal.route;
+    ctx.fill();
+
+    // 终点
+    if (progress >= 0.999){
+      var end = pts[pts.length - 1];
+      ctx.beginPath();
+      ctx.arc(end[0], end[1], 7.6 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = pal.route;
+      ctx.fill();
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2.4 * scale;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(end[0], end[1], 2.4 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+    }
+
+    // 行进光点
+    if (showPulse && progress < 0.999 && head.length > 1){
+      var hp = head[head.length - 1];
+      var pulse = (Math.sin(now / 260) + 1) / 2;
+      ctx.beginPath();
+      ctx.arc(hp[0], hp[1], (8 + 6 * pulse) * scale, 0, Math.PI * 2);
+      ctx.fillStyle = withAlpha(pal.route, 0.16 * (1 - pulse));
+      ctx.fill();
+      ctx.beginPath();
+      ctx.arc(hp[0], hp[1], 5.4 * scale, 0, Math.PI * 2);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fill();
+      ctx.strokeStyle = pal.route;
+      ctx.lineWidth = 2.4 * scale;
+      ctx.stroke();
+    }
+  }
+
+  function findAt(pts, L, target){
+    if (target <= 0) return pts[0];
+    if (target >= L[L.length - 1]) return pts[pts.length - 1];
+    var lo = 0, hi = L.length - 1;
+    while (lo < hi - 1){
+      var mid = (lo + hi) >> 1;
+      if (L[mid] <= target) lo = mid; else hi = mid;
+    }
+    var segLen = L[hi] - L[lo] || 1;
+    var t = (target - L[lo]) / segLen;
+    return [lerp(pts[lo][0], pts[hi][0], t), lerp(pts[lo][1], pts[hi][1], t)];
+  }
+
+  /* ============================ 状态 ============================ */
+  var state = {
+    shape: 'city',
+    distance: 5,
+    pace: 342,
+    style: 'city',
+    seed: 'keep-trail-2026',
+    user: 'Keep User',
+    location: '广州市 · 天河公园',
+    weather: '多云',
+    temp: 20,
+    date: todayStr(),
+    time: '08:32'
+  };
+
+  var stats = null;
+  var routeNorm = null;
+  var screenData = null;
+
+  var mapW = 356, mapH = 240;
+  var dpr = Math.min(2, window.devicePixelRatio || 1);
+  var phoneCanvas, phoneCtx, baseCanvas, baseKey = '';
+  var animating = false, animStart = 0, animDur = 2200, animProg = 1;
+  var lastShown = { dist: 0, time: 0, cal: 0 };
+  var numTweenId = 0;
+
+  function computeStats(){
+    var rng = mulberry32(hashSeed(state.seed + '|stats'));
+    var distance = round2(state.distance + (rng() - 0.5) * 0.1);
+    var pace = state.pace + Math.round((rng() - 0.5) * 10);
+    var duration = Math.round(distance * pace);
+    var cadence = 168 + Math.floor(rng() * 13);
+    var calories = Math.round(distance * 60.5 * 1.036);
+    var elevation = Math.max(2, Math.round(distance * (1.6 + rng() * 3.2)));
+    var hr = 138 + Math.floor(rng() * 23);
+    var steps = Math.round(cadence * duration / 60);
+    var n = Math.max(1, Math.ceil(distance));
+    var remain = distance;
+    var splits = [];
+    for (var i = 0; i < n; i++){
+      var km = Math.min(1, remain);
+      remain -= km;
+      var jitter = (rng() - 0.5) * 0.07;
+      var p = Math.round(pace * (1 + jitter) - (i === n - 1 ? 5 : 0));
+      splits.push({ km: i + 1, pace: p });
+    }
+    return {
+      distance: distance, pace: pace, duration: duration, cadence: cadence,
+      calories: calories, elevation: elevation, hr: hr, steps: steps, splits: splits
+    };
+  }
+
+  /* ============================ 文本渲染 ============================ */
+  function renderText(animateNumbers){
+    var d = parseDate(state.date);
+    var M = d.getMonth() + 1, D = d.getDate();
+    var week = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+
+    $('#distVal').textContent = stats.distance.toFixed(2);
+    $('#timeVal').textContent = fmtTime(stats.duration);
+    $('#paceVal').textContent = fmtPace(stats.pace);
+    $('#dateText').innerHTML = M + '月' + D + '日<br><span>' + week + '</span>';
+    $('#locText').textContent = state.location;
+    $('#chipDate').textContent = M + '月' + D + '日 ' + state.time;
+    $('#chipWeather').textContent = state.weather + ' ' + state.temp + '°';
+
+    if (animateNumbers){
+      tweenNumber($('#distVal'), lastShown.dist, stats.distance, function(v){ return v.toFixed(2); });
+      tweenNumber($('#timeVal'), lastShown.time, stats.duration, function(v){ return fmtTime(v); });
+    }
+    lastShown.dist = stats.distance;
+    lastShown.time = stats.duration;
+
+    $('#calVal').innerHTML = stats.calories + '<em>千卡</em>';
+    $('#cadVal').innerHTML = stats.cadence + '<em>步/分</em>';
+    $('#eleVal').innerHTML = stats.elevation + '<em>米</em>';
+    $('#hrVal').innerHTML = stats.hr + '<em>次/分</em>';
+  }
+
+  function renderSplits(){
+    var splits = stats.splits;
+    var minPace = Infinity, maxPace = -Infinity;
+    for (var i = 0; i < splits.length; i++){
+      if (splits[i].pace < minPace) minPace = splits[i].pace;
+      if (splits[i].pace > maxPace) maxPace = splits[i].pace;
+    }
+    var span = Math.max(1, maxPace - minPace);
+    var html = '';
+    var fastestMarked = false;
+    for (var j = 0; j < splits.length; j++){
+      var s = splits[j];
+      var width = 38 + 62 * (maxPace - s.pace) / span;
+      var isFast = !fastestMarked && s.pace === minPace;
+      if (isFast) fastestMarked = true;
+      html += '<div class="split' + (isFast ? ' fast' : '') + '">' +
+        '<span>' + s.km + '</span>' +
+        '<div class="bar"><i style="width:' + width.toFixed(1) + '%"></i></div>' +
+        '<span>' + fmtPace(s.pace) + '</span>' +
+        '</div>';
+    }
+    $('#splits').innerHTML = html;
+    $('#fastestPill').textContent = '最快 ' + fmtPace(minPace);
+  }
+
+  function tweenNumber(el, from, to, fmt){
+    var id = ++numTweenId;
+    var start = performance.now();
+    function step(now){
+      if (id !== numTweenId) return;
+      var p = clamp((now - start) / 650, 0, 1);
+      el.textContent = fmt(lerp(from, to, easeOutCubic(p)));
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  /* ============================ 画布 ============================ */
+  function initCanvas(){
+    phoneCanvas = $('#mapCanvas');
+    mapW = phoneCanvas.offsetWidth || 356;
+    mapH = phoneCanvas.offsetHeight || 240;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+    phoneCanvas.width = Math.round(mapW * dpr);
+    phoneCanvas.height = Math.round(mapH * dpr);
+    phoneCtx = phoneCanvas.getContext('2d');
+    screenData = makeScreen(routeNorm, mapW, mapH, 30);
+    rebuildBase();
+  }
+
+  function rebuildBase(){
+    var key = state.style + '|' + state.seed + '|' + mapW + 'x' + mapH + '@' + dpr;
+    if (key === baseKey && baseCanvas) return;
+    baseKey = key;
+    baseCanvas = document.createElement('canvas');
+    baseCanvas.width = Math.round(mapW * dpr);
+    baseCanvas.height = Math.round(mapH * dpr);
+    var bctx = baseCanvas.getContext('2d');
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawBase(bctx, mapW, mapH, state.style, state.seed);
+  }
+
+  function drawPhoneMap(now){
+    if (!phoneCtx) return;
+    var pal = PALETTES[state.style] || PALETTES.city;
+    phoneCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    phoneCtx.clearRect(0, 0, mapW, mapH);
+    phoneCtx.drawImage(baseCanvas, 0, 0, mapW, mapH);
+    drawRouteLayer(phoneCtx, screenData, animProg, {
+      pal: pal,
+      scale: mapW / 358,
+      distance: stats.distance,
+      now: now || 0,
+      showPulse: true
+    });
+  }
+
+  /* ============================ 动画 ============================ */
+  function playIntro(){
+    animProg = 0;
+    animating = true;
+    animStart = performance.now();
+    animDur = 2000 + Math.random() * 500;
+  }
+
+  function tick(now){
+    if (animating){
+      var t = clamp((now - animStart) / animDur, 0, 1);
+      animProg = easeOutCubic(t);
+      if (t >= 1){
+        animating = false;
+        animProg = 1;
+      }
+    }
+    drawPhoneMap(now);
+    requestAnimationFrame(tick);
+  }
+
+  /* ============================ 生成 ============================ */
+  function regenerate(animate){
+    var rng = mulberry32(hashSeed(state.seed + '|' + state.shape));
+    routeNorm = buildRoute(state.shape, rng);
+    stats = computeStats();
+    if (screenData) screenData = makeScreen(routeNorm, mapW, mapH, 30);
+    rebuildBase();
+    renderText(!!animate);
+    renderSplits();
+    if (animate && $('#animToggle').checked){
+      playIntro();
+    } else {
+      animating = false;
+      animProg = 1;
+      drawPhoneMap(performance.now());
+    }
+  }
+
+  function syncControls(){
+    var shapeChips = $('#shapeChips').querySelectorAll('.chip');
+    for (var i = 0; i < shapeChips.length; i++){
+      shapeChips[i].classList.toggle('active', shapeChips[i].getAttribute('data-v') === state.shape);
+    }
+    var styleChips = $('#styleChips').querySelectorAll('.chip');
+    for (var j = 0; j < styleChips.length; j++){
+      styleChips[j].classList.toggle('active', styleChips[j].getAttribute('data-v') === state.style);
+    }
+    var dr = $('#distRange');
+    dr.value = state.distance;
+    setFill(dr);
+    $('#distLabel').textContent = Number(state.distance).toFixed(1) + ' km';
+
+    var pr = $('#paceRange');
+    pr.value = state.pace;
+    setFill(pr);
+    $('#paceLabel').textContent = fmtPace(state.pace);
+
+    $('#seedInput').value = state.seed;
+    $('#userInput').value = state.user;
+    $('#locInput').value = state.location;
+    $('#weatherSelect').value = state.weather;
+    $('#tempInput').value = state.temp;
+    $('#dateInput').value = state.date;
+    $('#timeInput').value = state.time;
+  }
+
+  function setFill(el){
+    var min = Number(el.min), max = Number(el.max), v = Number(el.value);
+    var p = ((v - min) / (max - min)) * 100;
+    el.style.setProperty('--fill', p.toFixed(2) + '%');
+  }
+
+  function randomizeAll(){
+    var shapes = ['loop', 'outback', 'track', 'city'];
+    var weathers = ['多云', '晴', '阴', '微风', '小雨'];
+    state.shape = shapes[Math.floor(Math.random() * shapes.length)];
+    state.distance = Math.round((3 + Math.random() * 9) * 2) / 2;
+    state.pace = 265 + Math.round(Math.random() * 125 / 5) * 5;
+    state.seed = 'keep-' + Math.random().toString(36).slice(2, 8);
+    state.weather = weathers[Math.floor(Math.random() * weathers.length)];
+    state.temp = 8 + Math.round(Math.random() * 17);
+    syncControls();
+    regenerate(true);
+  }
+
+  /* ============================ 导出海报 ============================ */
+  function drawPosterMap(ctx, x, y, w, h){
+    var pal = PALETTES[state.style] || PALETTES.city;
+    var screen = makeScreen(routeNorm, w, h, 52);
+    ctx.save();
+    rrPath(ctx, x, y, w, h, 38);
+    ctx.clip();
+    ctx.translate(x, y);
+    drawBase(ctx, w, h, state.style, state.seed);
+    drawRouteLayer(ctx, screen, 1, {
+      pal: pal,
+      scale: w / 358,
+      distance: stats.distance,
+      now: 0,
+      showPulse: false
+    });
+    ctx.restore();
+    ctx.save();
+    rrPath(ctx, x, y, w, h, 38);
+    ctx.strokeStyle = 'rgba(255,255,255,.10)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function renderPoster(){
+    var W = 1080, H = 1440;
+    var cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    var ctx = cv.getContext('2d');
+
+    var bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, '#0A0D11');
+    bg.addColorStop(1, '#0C1512');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    var glow = ctx.createRadialGradient(W * 0.85, -60, 0, W * 0.85, -60, 760);
+    glow.addColorStop(0, 'rgba(34,209,131,.22)');
+    glow.addColorStop(1, 'rgba(34,209,131,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+
+    // 顶部品牌
+    var lg = ctx.createLinearGradient(64, 78, 136, 150);
+    lg.addColorStop(0, '#2BE38F');
+    lg.addColorStop(1, '#0FA968');
+    ctx.fillStyle = lg;
+    rrPath(ctx, 64, 78, 72, 72, 22);
+    ctx.fill();
+    ctx.fillStyle = '#05130D';
+    ctx.font = '900 40px ' + FONT;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('K', 100, 116);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+
+    ctx.fillStyle = '#F2F8F4';
+    ctx.font = '700 46px ' + FONT;
+    ctx.fillText('Keep 运动轨迹', 162, 122);
+    var d = parseDate(state.date);
+    ctx.fillStyle = 'rgba(255,255,255,.42)';
+    ctx.font = '400 23px ' + FONT;
+    ctx.fillText(state.user + '  ·  ' + (d.getMonth() + 1) + '月' + d.getDate() + '日 ' + state.time, 162, 158);
+
+    // 地图
+    drawPosterMap(ctx, 64, 200, 952, 680);
+
+    // 标题行
+    ctx.fillStyle = '#EAF3EE';
+    ctx.font = '600 30px ' + FONT;
+    ctx.fillText('户外跑步', 64, 944);
+    ctx.fillStyle = 'rgba(255,255,255,.45)';
+    ctx.font = '400 23px ' + FONT;
+    ctx.fillText(state.location + '  ·  ' + state.weather + ' ' + state.temp + '°', 64, 982);
+
+    // 主数据
+    var cols = [64, 396, 692];
+    var labels = ['距离', '用时', '平均配速'];
+    var values = [stats.distance.toFixed(2), fmtTime(stats.duration), fmtPace(stats.pace)];
+    var units = ['km', '', ''];
+    for (var i = 0; i < 3; i++){
+      ctx.fillStyle = 'rgba(255,255,255,.40)';
+      ctx.font = '500 21px ' + FONT;
+      ctx.fillText(labels[i], cols[i], 1044);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 62px ' + FONT;
+      ctx.fillText(values[i], cols[i], 1112);
+      if (units[i]){
+        var vw = ctx.measureText(values[i]).width;
+        ctx.fillStyle = 'rgba(255,255,255,.45)';
+        ctx.font = '600 22px ' + FONT;
+        ctx.fillText(units[i], cols[i] + vw + 10, 1112);
+      }
+    }
+
+    // 分隔线
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(64, 1158);
+    ctx.lineTo(1016, 1158);
+    ctx.stroke();
+
+    // 次级数据
+    var metrics = [
+      ['卡路里', stats.calories, '千卡'],
+      ['平均步频', stats.cadence, '步/分'],
+      ['累计爬升', stats.elevation, '米'],
+      ['平均心率', stats.hr, '次/分']
+    ];
+    for (var m = 0; m < 4; m++){
+      var x = 64 + m * 238;
+      var mv = metrics[m];
+      ctx.fillStyle = 'rgba(255,255,255,.40)';
+      ctx.font = '500 20px ' + FONT;
+      ctx.fillText(mv[0], x, 1204);
+      ctx.fillStyle = '#EAF3EE';
+      ctx.font = '700 32px ' + FONT;
+      ctx.fillText(String(mv[1]), x, 1248);
+      var w2 = ctx.measureText(String(mv[1])).width;
+      ctx.fillStyle = 'rgba(255,255,255,.38)';
+      ctx.font = '500 17px ' + FONT;
+      ctx.fillText(mv[2], x + w2 + 6, 1248);
+    }
+
+    // 配速迷你柱状
+    var splits = stats.splits;
+    var show = Math.min(16, splits.length);
+    var minP = Infinity, maxP = -Infinity;
+    for (var s = 0; s < show; s++){
+      minP = Math.min(minP, splits[s].pace);
+      maxP = Math.max(maxP, splits[s].pace);
+    }
+    ctx.fillStyle = 'rgba(255,255,255,.40)';
+    ctx.font = '500 20px ' + FONT;
+    ctx.fillText('每公里配速' + (splits.length > show ? '（前 ' + show + ' 公里）' : ''), 64, 1302);
+
+    var barAreaW = 952, barGap = 7;
+    var barW = Math.max(6, (barAreaW - barGap * (show - 1)) / show);
+    var spanP = Math.max(1, maxP - minP);
+    for (var b = 0; b < show; b++){
+      var bx = 64 + b * (barW + barGap);
+      var ratio = 0.35 + 0.65 * (maxP - splits[b].pace) / spanP;
+      var bh = 18 + 44 * ratio;
+      var by = 1384 - bh;
+      var g = ctx.createLinearGradient(0, by, 0, 1384);
+      if (splits[b].pace === minP){
+        g.addColorStop(0, '#3DF09A');
+        g.addColorStop(1, '#10B26C');
+      } else {
+        g.addColorStop(0, 'rgba(150,185,168,.55)');
+        g.addColorStop(1, 'rgba(110,140,125,.35)');
+      }
+      ctx.fillStyle = g;
+      rrPath(ctx, bx, by, barW, bh, Math.min(4, barW / 2));
+      ctx.fill();
+    }
+
+    // 底部
+    ctx.fillStyle = 'rgba(255,255,255,.30)';
+    ctx.font = '400 18px ' + FONT;
+    ctx.fillText(state.user + '  ·  ' + state.location, 64, 1418);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = 'rgba(43,224,140,.75)';
+    ctx.fillText('模拟数据 · 仅供演示', 1016, 1418);
+    ctx.textAlign = 'left';
+
+    return cv;
+  }
+
+  var posterBlobUrl = null;
+
+  function exportPoster(){
+    try {
+      var cv = renderPoster();
+      cv.toBlob(function(blob){
+        if (!blob){
+          showToast('导出失败，请重试');
+          return;
+        }
+        if (posterBlobUrl) URL.revokeObjectURL(posterBlobUrl);
+        posterBlobUrl = URL.createObjectURL(blob);
+        $('#posterImg').src = posterBlobUrl;
+        $('#posterModal').classList.add('show');
+      }, 'image/png');
+    } catch (e){
+      showToast('导出失败，请重试');
+    }
+  }
+
+  function downloadPoster(){
+    if (!posterBlobUrl) return;
+    var a = document.createElement('a');
+    a.href = posterBlobUrl;
+    a.download = 'keep-trail-' + state.seed.replace(/[^\w-]/g, '').slice(0, 16) + '.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    showToast('轨迹图片已下载');
+  }
+
+  function closePoster(){
+    $('#posterModal').classList.remove('show');
+  }
+
+  var toastTimer = 0;
+  function showToast(msg){
+    var t = $('#toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.classList.remove('show'); }, 2200);
+  }
+
+  /* ============================ 事件绑定 ============================ */
+  function bind(){
+    $('#shapeChips').addEventListener('click', function(e){
+      var btn = e.target.closest('.chip');
+      if (!btn) return;
+      state.shape = btn.getAttribute('data-v');
+      syncControls();
+      regenerate(true);
+    });
+
+    $('#styleChips').addEventListener('click', function(e){
+      var btn = e.target.closest('.chip');
+      if (!btn) return;
+      state.style = btn.getAttribute('data-v');
+      syncControls();
+      regenerate(true);
+    });
+
+    $('#distRange').addEventListener('input', function(e){
+      state.distance = Number(e.target.value);
+      setFill(e.target);
+      $('#distLabel').textContent = state.distance.toFixed(1) + ' km';
+      regenerate(false);
+    });
+
+    $('#paceRange').addEventListener('input', function(e){
+      state.pace = Number(e.target.value);
+      setFill(e.target);
+      $('#paceLabel').textContent = fmtPace(state.pace);
+      regenerate(false);
+    });
+
+    $('#seedInput').addEventListener('change', function(e){
+      state.seed = e.target.value.trim() || 'keep-trail-2026';
+      regenerate(true);
+    });
+
+    $('#diceBtn').addEventListener('click', function(){
+      state.seed = 'keep-' + Math.random().toString(36).slice(2, 8);
+      syncControls();
+      regenerate(true);
+    });
+
+    $('#userInput').addEventListener('input', function(e){
+      state.user = e.target.value || 'Keep User';
+    });
+    $('#locInput').addEventListener('input', function(e){
+      state.location = e.target.value || '未命名地点';
+      $('#locText').textContent = state.location;
+    });
+    $('#weatherSelect').addEventListener('change', function(e){
+      state.weather = e.target.value;
+      $('#chipWeather').textContent = state.weather + ' ' + state.temp + '°';
+    });
+    $('#tempInput').addEventListener('input', function(e){
+      state.temp = Number(e.target.value) || 0;
+      $('#chipWeather').textContent = state.weather + ' ' + state.temp + '°';
+    });
+    $('#dateInput').addEventListener('change', function(e){
+      if (e.target.value) {
+        state.date = e.target.value;
+        renderText(false);
+      }
+    });
+    $('#timeInput').addEventListener('change', function(e){
+      if (e.target.value) {
+        state.time = e.target.value;
+        renderText(false);
+      }
+    });
+
+    $('#regenBtn').addEventListener('click', randomizeAll);
+    $('#replayBtn').addEventListener('click', function(){
+      playIntro();
+      showToast('正在重播轨迹动画');
+    });
+    $('#exportBtn').addEventListener('click', exportPoster);
+
+    $('#modalClose').addEventListener('click', closePoster);
+    $('#modalCancel').addEventListener('click', closePoster);
+    $('#modalDownload').addEventListener('click', downloadPoster);
+    $('#posterModal').addEventListener('click', function(e){
+      if (e.target === $('#posterModal')) closePoster();
+    });
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closePoster();
+    });
+  }
+
+  /* ============================ 自适应 ============================ */
+  function fitPhone(){
+    var stage = $('.stage');
+    var holder = $('#phoneHolder');
+    var phone = $('#phone');
+    var availH = window.innerHeight - 110;
+    var availW = stage.clientWidth - 48;
+    if (window.innerWidth <= 980){
+      availH = window.innerHeight - 80;
+      availW = Math.min(window.innerWidth - 32, 560);
+      availH = 1200;
+    }
+    var s = Math.min(1, availW / PHONE_W, availH / PHONE_H);
+    s = Math.max(0.4, s);
+    phone.style.transform = 'scale(' + s + ')';
+    holder.style.width = (PHONE_W * s) + 'px';
+    holder.style.height = (PHONE_H * s) + 'px';
+  }
+
+  /* ============================ 初始化 ============================ */
+  function init(){
+    $('#dateInput').value = state.date;
+    $('#timeInput').value = state.time;
+    dpr = Math.min(2, window.devicePixelRatio || 1);
+
+    routeNorm = buildRoute(state.shape, mulberry32(hashSeed(state.seed + '|' + state.shape)));
+    stats = computeStats();
+    screenData = makeScreen(routeNorm, mapW, mapH, 30);
+
+    initCanvas();
+    syncControls();
+    renderText(false);
+    renderSplits();
+    lastShown = { dist: stats.distance, time: stats.duration, cal: stats.calories };
+    animProg = 1;
+
+    bind();
+    fitPhone();
+    window.addEventListener('resize', function(){
+      fitPhone();
+      if (phoneCanvas){
+        var nw = phoneCanvas.offsetWidth || 356;
+        var nh = phoneCanvas.offsetHeight || 240;
+        if (nw !== mapW || nh !== mapH){
+          mapW = nw; mapH = nh;
+          phoneCanvas.width = Math.round(mapW * dpr);
+          phoneCanvas.height = Math.round(mapH * dpr);
+          screenData = makeScreen(routeNorm, mapW, mapH, 30);
+          baseKey = '';
+          rebuildBase();
+        }
+      }
+    });
+
+    playIntro();
+    requestAnimationFrame(tick);
+    drawPhoneMap(performance.now());
+    setTimeout(fitPhone, 60);
+  }
+
+  if (document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>
