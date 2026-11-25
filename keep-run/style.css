@@ -168,6 +168,8 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
   height:46px;flex:none;display:flex;align-items:center;justify-content:space-between;
   padding:8px 20px 0;font-size:12.5px;font-weight:600;color:#111;letter-spacing:.2px;
 }
+.sb-time{display:flex;align-items:center;gap:3px}
+.sb-leaf{display:inline-block;flex:none;vertical-align:middle}
 .sb-icons{display:flex;align-items:center;gap:4px}
 .sb-icons svg{display:block}
 .sb-net{display:flex;align-items:flex-end;gap:3px;margin-left:2px}
@@ -187,11 +189,39 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
 }
 .detail-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;padding-bottom:96px}
 .detail-scroll::-webkit-scrollbar{display:none}
+
+/* 玩偶头像 */
 .profile{display:flex;align-items:center;gap:11px;padding:8px 18px 12px}
-.avatar{
-  width:42px;height:42px;border-radius:50%;flex:none;background:#EFEFED;
-  display:grid;place-items:center;color:#9B9B98;font-size:19px;font-weight:600;
+.avatar-dino{
+  width:44px;height:44px;border-radius:50%;flex:none;position:relative;
+  background:linear-gradient(160deg,#6A5C48,#3F372A);
+  display:grid;place-items:center;overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,0,0,.08);
 }
+.avatar-dino::before{
+  /* dinosaur face (orange plush) */
+  content:'';position:absolute;
+  width:72%;height:66%;top:18%;left:14%;
+  background:#E8924A;border-radius:46% 46% 42% 42% / 40% 40% 52% 52%;
+  box-shadow:inset 0 -2px 0 rgba(0,0,0,.12);
+}
+.avatar-dino::after{
+  content:'';position:absolute;width:54%;height:16%;bottom:20%;left:23%;
+  background:#FDB06A;border-radius:50%;
+  box-shadow:inset 0 2px 0 rgba(0,0,0,.08);
+}
+/* 眼睛 */
+.avatar-dino .dino-eye,
+.avatar-dino .dino-eye-r{
+  position:absolute;width:20%;height:22%;top:28%;background:#181818;border-radius:50%;
+}
+.avatar-dino .dino-eye{left:26%}
+.avatar-dino .dino-eye-r{right:26%}
+.avatar-dino .dino-eye::before,
+.avatar-dino .dino-eye-r::before{
+  content:'';position:absolute;width:40%;height:40%;top:25%;left:25%;background:#fff;border-radius:50%;
+}
+
 .profile-main{min-width:0}
 .profile-name{font-size:14.5px;font-weight:600;color:#151515;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .profile-meta{font-size:10.8px;color:#A2A2A0;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0}
@@ -200,6 +230,48 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
 .dist-row{display:flex;align-items:flex-end;gap:8px;padding:10px 18px 14px}
 .dist-num{font-size:68px;line-height:.9;font-weight:900;letter-spacing:-3.5px;color:#0B0B0B;font-variant-numeric:tabular-nums}
 .dist-unit{font-size:14px;font-weight:500;color:#1E1E1E;padding-bottom:5px;letter-spacing:1px}
+
+/* Keep 等级徽章 */
+.keep-badge{
+  margin-left:auto;display:flex;flex-direction:column;align-items:center;gap:1px;flex:none;
+  padding-top:4px;
+}
+.keep-badge .badge-ico{
+  width:54px;height:54px;border-radius:14px;background:#1C1C1C;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  position:relative;overflow:hidden;
+  box-shadow:0 2px 6px rgba(0,0,0,.12);
+}
+.keep-badge .badge-ico.type-weekly{
+  background:linear-gradient(140deg,#FFD23D,#C9992A);
+  clip-path:polygon(50% 0,100% 25%,100% 75%,50% 100%,0 75%,0 25%);
+  border-radius:0;
+  width:58px;height:62px;
+}
+.keep-badge .badge-ico.type-weekly::before{
+  content:'Weekly';font-size:6px;font-weight:700;letter-spacing:.5px;color:#8C4B00;
+}
+.keep-badge .badge-ico.type-weekly::after{
+  content:'3';position:absolute;font-size:26px;font-weight:900;color:#fff;top:50%;left:50%;
+  transform:translate(-50%,-30%);
+  background:linear-gradient(140deg,#4466CC,#6A44D6);
+  width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.35);
+}
+.keep-badge .badge-ico.type-level{
+  background:linear-gradient(160deg,#363636,#181818);
+  border-radius:50%;
+}
+.keep-badge .badge-ico.type-level::before{
+  content:'30';font-size:14px;font-weight:900;color:#1CDA7A;
+  text-shadow:0 0 6px rgba(28,218,122,.55);
+}
+.keep-badge .badge-label{
+  font-size:10.5px;color:#6E6E6C;letter-spacing:.2px;margin-top:2px;
+}
+.keep-badge .badge-sub{
+  font-size:11px;color:#333;font-weight:700;letter-spacing:.4px;
+}
 
 /* 全宽地图 */
 .map-block{position:relative;width:100%;height:330px;background:#F7F5EE;flex:none}
@@ -221,17 +293,23 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
   background:linear-gradient(90deg,#D98A7B,#F0C29A 32%,#7ED9C0 68%,#45D2DA);
 }
 
-/* 超跑节 banner */
-.banner{display:flex;align-items:center;gap:10px;padding:15px 18px;background:#fff}
-.banner-logo{
-  width:34px;height:34px;border-radius:50%;flex:none;
-  background:linear-gradient(140deg,#6D2BF5,#B03BFF);display:flex;flex-direction:column;
-  align-items:center;justify-content:center;color:#fff;line-height:1;
+/* 轨迹地图 PB 贴纸 (detail 页上也出现) */
+.pb-sticker{
+  position:absolute;width:62px;height:62px;border-radius:50%;
+  background:#0B0B0B;border:3px solid #fff;transform:rotate(-7deg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  box-shadow:0 6px 16px rgba(0,0,0,.22);line-height:1;
 }
-.banner-logo b{font-size:7px;letter-spacing:.5px}
-.banner-logo em{font-style:normal;font-size:5.5px;transform:scale(.9);margin-top:1px;letter-spacing:.2px}
-.banner-text{font-size:15px;font-weight:800;color:#5A1FD1;letter-spacing:.2px}
-.banner-right{margin-left:auto;display:flex;align-items:center;gap:2px;font-size:12.5px;color:#8B8B88}
+.pb-sticker b{font-size:17px;font-weight:900;color:#fff;letter-spacing:.5px}
+.pb-sticker em{font-style:italic;font-size:11px;font-weight:900;letter-spacing:.4px;
+  background:linear-gradient(90deg,#F3D0FF,#BB8CFF);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:3px}
+.pb-sticker-map{left:34%;top:58%;z-index:11}
+.pb-sticker-trail{left:28%;top:44%;z-index:11}
+
+/* 超跑节 / OAKLEY banner */
+.banner{display:flex;align-items:center;gap:10px;padding:15px 18px;background:#fff}
+.banner-text{flex:1;font-size:15px;font-weight:700;color:#202020;letter-spacing:.2px}
+.banner-right{display:flex;align-items:center;gap:2px;font-size:12.5px;color:#8B8B88}
 .stats-head{display:flex;align-items:center;justify-content:space-between;padding:10px 18px 4px}
 .stats-head h3{font-size:18px;font-weight:800;letter-spacing:.2px;color:#121212}
 .stats-head span{
@@ -260,7 +338,6 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
 .view-trail{background:#F7F5EE}
 .trail-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .view-trail .statusbar{position:absolute;top:0;left:0;right:0;z-index:12;background:transparent}
-.charge{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:4px;background:#22C55E;color:#fff;font-size:10px;font-weight:800;margin-left:5px;vertical-align:1px}
 .trail-back{
   position:absolute;left:17px;top:60px;width:38px;height:38px;border-radius:50%;
   background:#0C0C0C;border:none;color:#fff;display:grid;place-items:center;z-index:14;
@@ -268,7 +345,7 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
 }
 .trail-title{
   position:absolute;top:64px;left:50%;transform:translateX(-50%);
-  font-family:"STKaiti","KaiTi","Kaiti SC",var(--font);
+  font-family:"STKaiti","KaiTi","KaiTi SC",var(--font);
   font-size:20px;font-weight:600;color:#1B1B1B;letter-spacing:2px;z-index:13;
   text-shadow:0 1px 0 rgba(255,255,255,.85);white-space:nowrap;
 }
@@ -285,15 +362,6 @@ input[type=range]::-moz-range-thumb{width:9px;height:9px;border-radius:50%;backg
   border-radius:999px;padding:7px 17px;letter-spacing:1px;z-index:12;
   -webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);
 }
-.pb-sticker{
-  position:absolute;left:28%;top:44%;width:62px;height:62px;border-radius:50%;
-  background:#0B0B0B;border:3px solid #fff;z-index:11;transform:rotate(-7deg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  box-shadow:0 6px 16px rgba(0,0,0,.22);line-height:1;
-}
-.pb-sticker b{font-size:17px;font-weight:900;color:#fff;letter-spacing:.5px}
-.pb-sticker em{font-style:italic;font-size:11px;font-weight:900;letter-spacing:.4px;
-  background:linear-gradient(90deg,#F3D0FF,#BB8CFF);-webkit-background-clip:text;background-clip:text;color:transparent;margin-top:3px}
 
 /* toast / modal */
 .toast{

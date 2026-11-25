@@ -58,7 +58,7 @@
         <div class="chips" id="styleChips">
           <button class="chip active" data-v="city">城市</button>
           <button class="chip" data-v="park">公园</button>
-          <button class="chip" data-v="river">滨江</button>
+          <button class="chip" data-v="campus">校区</button>
           <button class="chip" data-v="night">夜晚</button>
         </div>
         <label class="checkbox"><input type="checkbox" id="animToggle" checked> 生成时播放轨迹动画</label>
@@ -74,6 +74,7 @@
               <option>晴</option>
               <option>多云</option>
               <option>阴</option>
+              <option>轻度雾霾…</option>
               <option>小雨</option>
               <option>微风</option>
             </select>
@@ -102,7 +103,7 @@
           <!-- ============ 运动详情 ============ -->
           <div class="view view-detail" id="viewDetail">
             <div class="statusbar">
-              <span>19:31</span>
+              <span class="sb-time">19:31<svg class="sb-leaf" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2c-5 3-8 8-8 13 0 3 2 5 5 5 5 0 9-4 9-9 0-3-1-6-3-9h-3Z" fill="#22C55E"/></svg></span>
               <div class="sb-icons">
                 <span class="sb-kb">114<br>KB/s</span>
                 <svg width="12" height="13" viewBox="0 0 24 24" fill="#111" aria-hidden="true"><path d="M21 12.8A9.8 9.8 0 1 1 11.2 3a7.7 7.7 0 0 0 9.8 9.8Z"/></svg>
@@ -136,7 +137,7 @@
 
             <div class="detail-scroll">
               <div class="profile">
-                <div class="avatar" id="avatarLetter">儒</div>
+                <div class="avatar-dino" id="avatarDino"></div>
                 <div class="profile-main">
                   <div class="profile-name" id="userName">儒雅的_Keeperze4b</div>
                   <div class="profile-meta" id="metaText">2026/11/09 16:29 - 16:46 兰州市 · 晴 · 12°C</div>
@@ -151,6 +152,11 @@
               <div class="dist-row">
                 <span class="dist-num" id="distNum">1.56</span>
                 <span class="dist-unit">公里</span>
+                <div class="keep-badge" id="keepBadge" hidden>
+                  <div class="badge-ico" id="keepBadgeIco"></div>
+                  <div class="badge-label" id="keepBadgeLabel">累计运动天</div>
+                  <div class="badge-sub" id="keepBadgeSub">Lv4</div>
+                </div>
               </div>
 
               <div class="map-block">
@@ -170,11 +176,14 @@
                   </button>
                 </div>
                 <div class="map-legend">慢<i></i><span class="fast">快</span></div>
+                <div class="pb-sticker pb-sticker-map" id="pbStickerMap" hidden>
+                  <b>PB</b><em>GET!</em>
+                </div>
               </div>
 
-              <div class="banner">
-                <div class="banner-logo"><b>KEEP</b><em>超跑节</em></div>
-                <span class="banner-text">Keep超跑节，一起PB！</span>
+              <div class="banner" id="banner" hidden>
+                <svg width="36" height="36" viewBox="0 0 64 64" fill="none"><ellipse cx="32" cy="34" rx="12" ry="8" fill="#2F2F2F"/><path d="M20 36c-6-3-10 4-10 8 0 4 4 6 10 6 14 0 20-2 24-4" stroke="#888" stroke-width="3" stroke-linecap="round"/><circle cx="48" cy="28" r="3" fill="#2E90E2"/><path d="M45 32l-1 6 5 1v4" stroke="#3E6BE7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/><path d="M52 30h5l-2 8h-5z" fill="#7E5BFF"/></svg>
+                <span class="banner-text" id="bannerText">OAKLEY到店领跑步装备</span>
                 <span class="banner-right">已完成
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>
                 </span>
@@ -189,9 +198,9 @@
                 <div class="stat"><div class="k">训练时长</div><div class="v" id="statTime">00:09:45</div></div>
                 <div class="stat"><div class="k">平均配速</div><div class="v" id="statPace">06'13"</div></div>
                 <div class="stat"><div class="k">运动消耗</div><div class="v" id="statCal">101<small>千卡</small></div></div>
-                <div class="stat"><div class="k">总时长</div><div class="v" id="statTotal">00:16:41</div></div>
-                <div class="stat"><div class="k">运动负荷</div><div class="v" id="statLoad">32</div></div>
-                <div class="stat"><div class="k">爬升高度</div><div class="v" id="statElev">11<small>米</small></div></div>
+                <div class="stat"><div class="k" id="stat2K1">总时长</div><div class="v" id="statTotal">00:16:41</div></div>
+                <div class="stat"><div class="k" id="stat2K2">运动负荷</div><div class="v" id="statLoad">32</div></div>
+                <div class="stat"><div class="k" id="stat2K3">爬升高度</div><div class="v" id="statElev">11<small>米</small></div></div>
               </div>
             </div>
 
@@ -206,12 +215,12 @@
           <div class="view view-trail" id="viewTrail" hidden>
             <canvas class="trail-canvas" id="trailCanvas"></canvas>
             <div class="statusbar">
-              <span>18:41<span class="charge">↯</span></span>
+              <span class="sb-time">18:41<svg class="sb-leaf" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2c-5 3-8 8-8 13 0 3 2 5 5 5 5 0 9-4 9-9 0-3-1-6-3-9h-3Z" fill="#22C55E"/></svg></span>
               <div class="sb-icons">
                 <span class="sb-kb">2.30<br>KB/s</span>
+                <svg width="12" height="13" viewBox="0 0 24 24" fill="#111" aria-hidden="true"><path d="M21 12.8A9.8 9.8 0 1 1 11.2 3a7.7 7.7 0 0 0 9.8 9.8Z"/></svg>
                 <span class="sb-tag">5G</span>
                 <span class="sb-tag">4G</span>
-                <svg width="15" height="12" viewBox="0 0 24 24" fill="#111" aria-hidden="true"><path d="M12 19.5a1.8 1.8 0 1 0 0-3.6 1.8 1.8 0 0 0 0 3.6Zm-4.2-5.3a6.1 6.1 0 0 1 8.4 0l1.6-1.7a8.5 8.5 0 0 0-11.6 0l1.6 1.7Zm-3.4-3.5a10.9 10.9 0 0 1 15.2 0l1.6-1.7a13.2 13.2 0 0 0-18.4 0l1.6 1.7Z"/></svg>
                 <svg width="16" height="11" viewBox="0 0 16 11" fill="#111" aria-hidden="true"><rect x="0" y="7" width="2.6" height="4" rx=".8"/><rect x="4.4" y="5" width="2.6" height="6" rx=".8"/><rect x="8.8" y="2.6" width="2.6" height="8.4" rx=".8"/><rect x="13.2" y="0" width="2.6" height="11" rx=".8"/></svg>
                 <span class="sb-batt">
                   <svg width="24" height="12" viewBox="0 0 25 12" fill="none" aria-hidden="true"><rect x="0.5" y="0.5" width="21" height="11" rx="3.2" stroke="#111" stroke-opacity=".4"/><rect x="2" y="2" width="16.3" height="8" rx="1.8" fill="#F5B023"/><path d="M23.2 4v4a2.2 2.2 0 0 0 0-4Z" fill="#111" fill-opacity=".5"/></svg>
@@ -240,7 +249,7 @@
               </button>
             </div>
 
-            <div class="pb-sticker"><b>PB</b><em>GET!</em></div>
+            <div class="pb-sticker pb-sticker-trail" id="pbStickerTrail"><b>PB</b><em>GET!</em></div>
             <div class="map-legend">慢<i></i><span class="fast">快</span></div>
             <button class="locate-btn" aria-label="定位">
               <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="6.4"/><path d="M12 2v3.2M12 18.8V22M2 12h3.2M18.8 12H22"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
